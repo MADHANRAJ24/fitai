@@ -7,39 +7,53 @@ import { ScrollArea } from "@/components/ui/scroll-area"
 import { Utensils, ScanBarcode, Droplets, Apple, Plus, Search, Loader2 } from "lucide-react"
 import { motion } from "framer-motion"
 import { StatsService } from "@/services/stats-service"
+import { ActivityService } from "@/services/activity-service"
+import { useRouter } from "next/navigation"
 
 export default function NutritionPage() {
+    const router = useRouter()
     const [hydration, setHydration] = useState(1.2)
-    const [calories, setCalories] = useState(1270)
+    const [calories, setCalories] = useState(0)
+    const [meals, setMeals] = useState<any[]>([])
     const [isScanning, setIsScanning] = useState(false)
 
     useEffect(() => {
-        // Sync minimal stats if needed, or just fetch fresh
-        StatsService.getUserStats().then(stats => {
-            // If we wanted to sync total calories:
-            // setCalories(stats.calories) 
-            // BUT usually Nutrition page drives the Dashboard, not vice-versa for "Intake".
-            // For now we keep local state for demo.
-        })
+        // Load stats from Activity Service
+        const loadNutrition = () => {
+            const activities = ActivityService.getActivities()
+
+            // Filter for Nutrition/Scan items
+            const foodItems = activities.filter(a => a.type === "Nutrition" || a.type === "Scan")
+
+            // Calculate total calories
+            // Calculate total calories
+            const totalCals = foodItems.reduce((sum, item) => {
+                const val = typeof item.calories === 'string' ? parseInt(item.calories) : item.calories
+                return sum + (Number(val) || 0)
+            }, 0)
+
+            // Format for display
+            const formattedMeals = foodItems.map(item => ({
+                id: item.id,
+                type: item.type === "Scan" ? "Scanned Food" : "Meal",
+                time: item.date, // Simplification
+                items: [item.title],
+                cals: item.calories
+            }))
+
+            setCalories(totalCals)
+            setMeals(formattedMeals)
+        }
+        loadNutrition()
     }, [])
 
-    const meals = [
-        { id: 1, type: "Breakfast", time: "8:00 AM", items: ["Oatmeal with Berries", "Protein Shake"], cals: 450 },
-        { id: 2, type: "Lunch", time: "1:00 PM", items: ["Grilled Chicken Salad", "Avocado"], cals: 620 },
-        { id: 3, type: "Snack", time: "4:00 PM", items: ["Greek Yogurt", "Almonds"], cals: 200 },
-    ]
-
     const addWater = () => {
-        setHydration(prev => Math.min(prev + 0.25, 3.0)) // Max 3L cap visual
+        setHydration(prev => Math.min(prev + 0.25, 3.0))
     }
 
     const handleScan = () => {
         setIsScanning(true)
-        setTimeout(() => {
-            setIsScanning(false)
-            alert("📷 Food Scanned! Added 'Banana' (105 kcal)")
-            setCalories(prev => prev + 105)
-        }, 2000)
+        router.push("/dashboard/scan")
     }
 
     return (

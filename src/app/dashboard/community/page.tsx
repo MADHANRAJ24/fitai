@@ -6,6 +6,7 @@ import { Trophy, Medal, Flame, TrendingUp, Users, Award, Star, Share2 } from "lu
 import { Button } from "@/components/ui/button"
 import { SocialFeed } from "@/components/features/social-feed"
 import { motion } from "framer-motion"
+import { toast } from "sonner"
 
 export default function CommunityPage() {
     const leaderboard = [
@@ -15,6 +16,30 @@ export default function CommunityPage() {
         { rank: 4, name: "Bruce Wayne", xp: 8750, streak: 21, avatar: "BW" },
         { rank: 5, name: "Diana Prince", xp: 8200, streak: 8, avatar: "DP" },
     ]
+
+    const handleInvite = async () => {
+        const inviteData = {
+            title: "Join me on Fitness AI!",
+            text: "I'm crushing my fitness goals with Fitness AI. Join me and let's compete!",
+            url: window.location.origin
+        }
+
+        if (navigator.share) {
+            try {
+                await navigator.share(inviteData)
+                toast.success("Invite sent successfully!")
+            } catch (err) {
+                console.error("Error sharing:", err)
+            }
+        } else {
+            try {
+                await navigator.clipboard.writeText(`${inviteData.title}\n${inviteData.text}\n${inviteData.url}`)
+                toast.success("Invite link copied to clipboard!")
+            } catch (err) {
+                toast.error("Failed to copy invite link")
+            }
+        }
+    }
 
     return (
         <div className="space-y-8 h-[calc(100vh-8rem)] overflow-y-auto pr-2 custom-scrollbar">
@@ -30,7 +55,7 @@ export default function CommunityPage() {
                     <p className="text-muted-foreground">Compete, share, and grow together.</p>
                 </motion.div>
                 <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-                    <Button variant="neon" className="gap-2">
+                    <Button variant="neon" className="gap-2" onClick={handleInvite}>
                         <Share2 className="h-4 w-4" /> Invite Friends
                     </Button>
                 </motion.div>

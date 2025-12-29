@@ -1,11 +1,19 @@
 "use client"
 
 import Link from "next/link"
-import { usePathname } from "next/navigation"
+import { usePathname, useRouter } from "next/navigation"
 import { motion } from "framer-motion"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
-import { Dumbbell, LayoutDashboard, User } from "lucide-react"
+import { Dumbbell, LayoutDashboard, User, LogOut, CreditCard } from "lucide-react"
+import { useAuth } from "@/context/auth-context"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 
 export function Navbar() {
     const pathname = usePathname()
@@ -55,17 +63,64 @@ export function Navbar() {
             </nav>
 
             <div className="flex items-center gap-4">
-                <Link href="/dashboard">
-                    <Button variant="ghost" size="sm" className="hidden sm:flex">
-                        Sign In
-                    </Button>
-                </Link>
-                <Link href="/onboarding">
-                    <Button variant="neon" size="sm">
-                        Get Started
-                    </Button>
-                </Link>
+                <AuthButtons />
             </div>
         </header>
+    )
+}
+
+function AuthButtons() {
+    const { user, signIn, signOut, loading } = useAuth()
+    const router = useRouter() // Need to move useRouter to Navbar or pass it? Navbar already has it.
+
+    // Check if we need to redirect after login? 
+    // Usually handled by Supabase callback or state change.
+
+    if (loading) {
+        return <div className="h-8 w-8 animate-pulse bg-white/10 rounded-full" />
+    }
+
+    if (user) {
+        return (
+            <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" className="relative h-9 w-9 rounded-full border border-white/10">
+                        <Avatar className="h-9 w-9">
+                            <AvatarImage src={user.user_metadata?.avatar_url} alt={user.email} />
+                            <AvatarFallback className="bg-primary/20 text-primary">
+                                {user.email?.charAt(0).toUpperCase()}
+                            </AvatarFallback>
+                        </Avatar>
+                    </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent className="w-56" align="end" forceMount>
+                    <DropdownMenuItem onClick={() => window.location.href = '/dashboard/profile'}>
+                        <User className="mr-2 h-4 w-4" />
+                        <span>Profile</span>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => window.location.href = '/dashboard/billing'}>
+                        <CreditCard className="mr-2 h-4 w-4" />
+                        <span>Billing</span>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={signOut} className="text-red-500 focus:text-red-500">
+                        <LogOut className="mr-2 h-4 w-4" />
+                        <span>Sign Out</span>
+                    </DropdownMenuItem>
+                </DropdownMenuContent>
+            </DropdownMenu>
+        )
+    }
+
+    return (
+        <>
+            <Button variant="ghost" size="sm" className="hidden sm:flex" onClick={signIn}>
+                Sign In
+            </Button>
+            <Link href="/onboarding">
+                <Button variant="neon" size="sm">
+                    Get Started
+                </Button>
+            </Link>
+        </>
     )
 }

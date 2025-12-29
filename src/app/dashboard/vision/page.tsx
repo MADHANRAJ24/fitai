@@ -6,6 +6,9 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button"
 import { ScanFace, Camera, Eye, RefreshCw, Play, Square, Activity, Target } from "lucide-react"
 
+import { ActivityService } from "@/services/activity-service"
+import { toast } from "sonner"
+
 export default function VisionPage() {
     const videoRef = useRef<HTMLVideoElement>(null)
     const [isActive, setIsActive] = useState(false)
@@ -37,21 +40,61 @@ export default function VisionPage() {
             const tracks = stream.getTracks()
             tracks.forEach(track => track.stop())
             videoRef.current.srcObject = null
+
+            // SAVE WORKOUT DATA
+            if (reps > 0) {
+                const caloriesBurned = Math.floor(reps * 0.5) // Approx 0.5 cal per rep
+                ActivityService.saveActivity({
+                    type: "Vision",
+                    title: "AI Vision Session",
+                    details: `${reps} Reps Completed`,
+                    calories: caloriesBurned
+                })
+                toast.success(`Session Saved: ${reps} Reps, ${caloriesBurned} kcal`)
+            }
+
             setIsActive(false)
             setStatus("System Offline")
             setIsCalibrated(false)
+            setReps(0)
         }
     }
 
-    // Simulate Rep Counting
+    const [feedback, setFeedback] = useState<string | null>(null)
+
+    // Simulate Rep Counting & Feedback
     useEffect(() => {
         if (!isCalibrated) return
 
         const interval = setInterval(() => {
-            if (Math.random() > 0.6) {
+            const random = Math.random()
+
+            // Simulate Rep Count
+            if (random > 0.6) {
                 setReps(prev => prev + 1)
                 setStatus("Rep Counted")
-                setTimeout(() => setStatus("Tracking Active"), 1000)
+                setFeedback("Perfect form! Keep going.")
+                setTimeout(() => {
+                    setStatus("Tracking Active")
+                    setFeedback(null)
+                }, 1500)
+            }
+            // Simulate Form Correction (Randomly triggered)
+            else if (random < 0.2) {
+                const corrections = [
+                    "Keep your back straight",
+                    "Lower your hips more",
+                    "Don't lock your knees",
+                    "Control the descent",
+                    "Chin up, look forward"
+                ]
+                const correction = corrections[Math.floor(Math.random() * corrections.length)]
+                setFeedback(correction)
+                setStatus("Form Correction")
+                setTimeout(() => {
+                    setStatus("Tracking Active")
+                    setFeedback(null)
+                }, 2000)
             }
         }, 3000)
 
@@ -83,11 +126,7 @@ export default function VisionPage() {
                         </motion.div>
                         <div className="text-xs text-muted-foreground font-mono">REPS COMPLETED</div>
                     </div>
-                    {isActive ? (
-                        <Button variant="destructive" onClick={stopCamera} className="shadow-[0_0_15px_rgba(239,68,68,0.4)]">
-                            <Square className="h-4 w-4 mr-2" /> Stop Session
-                        </Button>
-                    ) : (
+                    {!isActive && (
                         <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
                             <Button variant="neon" onClick={startCamera}>
                                 <Play className="h-4 w-4 mr-2" /> Activate Vision
@@ -136,6 +175,21 @@ export default function VisionPage() {
                                     className="absolute left-0 w-full h-1 bg-primary/50 shadow-[0_0_20px_rgba(16,185,129,0.5)]"
                                 />
 
+                                {/* NEW: Feedback Alert */}
+                                <AnimatePresence>
+                                    {feedback && (
+                                        <motion.div
+                                            initial={{ opacity: 0, scale: 0.8, y: 50 }}
+                                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                                            exit={{ opacity: 0, scale: 0.8, y: 50 }}
+                                            className={`absolute bottom-32 left-1/2 -translate-x-1/2 px-6 py-4 rounded-xl backdrop-blur-md border border-white/20 shadow-2xl flex items-center gap-4 ${feedback.includes("Perfect") ? "bg-green-500/20 text-green-400" : "bg-red-500/20 text-red-400"}`}
+                                        >
+                                            <div className={`h-3 w-3 rounded-full animate-pulse ${feedback.includes("Perfect") ? "bg-green-500" : "bg-red-500"}`} />
+                                            <span className="font-bold text-lg tracking-wide uppercase">{feedback}</span>
+                                        </motion.div>
+                                    )}
+                                </AnimatePresence>
+
                                 {/* Corner Brackets */}
                                 <div className="absolute top-4 right-4 w-16 h-16 border-t-2 border-r-2 border-primary/50 rounded-tr-lg" />
                                 <div className="absolute bottom-4 left-4 w-16 h-16 border-b-2 border-l-2 border-primary/50 rounded-bl-lg" />
@@ -157,6 +211,18 @@ export default function VisionPage() {
                                         />
                                     )}
                                 </AnimatePresence>
+
+                                {/* Stop Button Overlay */}
+                                <div className="absolute bottom-8 left-1/2 -translate-x-1/2 pointer-events-auto">
+                                    <Button
+                                        variant="destructive"
+                                        size="lg"
+                                        onClick={stopCamera}
+                                        className="shadow-[0_0_30px_rgba(239,68,68,0.6)] rounded-full px-8 h-12 hover:scale-105 transition-transform"
+                                    >
+                                        <Square className="h-5 w-5 mr-2 fill-current" /> END SESSION
+                                    </Button>
+                                </div>
                             </div>
                         )}
 
@@ -179,7 +245,7 @@ export default function VisionPage() {
                                 ref={videoRef}
                                 autoPlay
                                 playsInline
-                                className={`w-full h-full object-cover relative z-0 ${isActive ? 'opacity-100' : 'opacity-0 hidden'}`}
+                                className={`w-full h-full object-cover relative z-0 scale-x-[-1] ${isActive ? 'opacity-100' : 'opacity-0 hidden'}`}
                             />
                         </div>
                     </Card>

@@ -7,6 +7,9 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Utensils, ChefHat, Sparkles, Clock, Flame, Leaf, ArrowRight, Loader2 } from "lucide-react"
 
+import { ActivityService } from "@/services/activity-service"
+import { toast } from "sonner"
+
 export default function DietPage() {
     const [ingredients, setIngredients] = useState("")
     const [isLoading, setIsLoading] = useState(false)
@@ -201,12 +204,29 @@ export default function DietPage() {
                                         </div>
 
                                         {/* Tags */}
-                                        <div className="flex gap-2 pt-4 border-t border-white/5">
-                                            {recipe.tags.map((tag: string, i: number) => (
-                                                <span key={i} className="text-xs px-3 py-1 rounded-full bg-white/5 text-muted-foreground border border-white/10">
-                                                    #{tag}
-                                                </span>
-                                            ))}
+                                        <div className="flex gap-2 pt-4 border-t border-white/5 justify-between items-center">
+                                            <div className="flex gap-2">
+                                                {recipe.tags.map((tag: string, i: number) => (
+                                                    <span key={i} className="text-xs px-3 py-1 rounded-full bg-white/5 text-muted-foreground border border-white/10">
+                                                        #{tag}
+                                                    </span>
+                                                ))}
+                                            </div>
+                                            <Button
+                                                size="sm"
+                                                variant="outline"
+                                                onClick={() => {
+                                                    ActivityService.saveActivity({
+                                                        type: "Nutrition",
+                                                        title: recipe.title,
+                                                        details: `${recipe.calories} • ${recipe.time}`,
+                                                        calories: parseInt(recipe.calories)
+                                                    })
+                                                    toast.success("Recipe Saved to Meal Plan")
+                                                }}
+                                            >
+                                                Save to Plan
+                                            </Button>
                                         </div>
                                     </CardContent>
                                 </Card>

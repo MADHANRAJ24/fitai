@@ -13,10 +13,10 @@ export function MobileNav() {
 
     const mainLinks = [
         { href: "/dashboard", icon: Home, label: "Home" },
-        { href: "/dashboard/workouts", icon: Activity, label: "Logs" },
+        { href: "/dashboard/scan", icon: Scan, label: "AI Scan" },
         { type: "trigger", icon: Grid, label: "Menu" }, // Trigger for full menu
         { href: "/dashboard/coach", icon: Sparkles, label: "Coach" },
-        { href: "/dashboard/admin", icon: User, label: "Profile" },
+        { href: "/profile", icon: User, label: "Profile" },
     ]
 
     const allFeatures = [
@@ -35,6 +35,7 @@ export function MobileNav() {
         { label: "Finance ROI", icon: Wallet, href: "/dashboard/finance", color: "text-emerald-400" },
         { label: "RPG Protocol", icon: Sword, href: "/dashboard/rpg", color: "text-purple-500" },
         { label: "Ego Chamber", icon: Sword, href: "/dashboard/ego", color: "text-orange-600" },
+        { label: "Billing", icon: Wallet, href: "/dashboard/billing", color: "text-yellow-500" },
         { label: "Settings", icon: Settings, href: "/dashboard/settings", color: "text-gray-400" },
     ]
 
@@ -85,7 +86,7 @@ export function MobileNav() {
                 )}
             </AnimatePresence>
 
-            <div className="fixed bottom-0 left-0 right-0 z-50 md:hidden pointer-events-none">
+            <div className="fixed bottom-0 left-0 right-0 z-50 md:hidden pointer-events-none transform-gpu translate-z-0">
                 {/* Float above safe area */}
                 <div className="glass pointer-events-auto border-t border-white/10 bg-black/80 backdrop-blur-xl pb-safe-bottom">
                     <div className="flex justify-around items-center h-16 px-2">
@@ -100,13 +101,13 @@ export function MobileNav() {
                                         key="menu-trigger"
                                         onClick={() => setIsOpen(!isOpen)}
                                         className={cn(
-                                            "flex flex-col items-center justify-center w-full h-full space-y-1",
+                                            "flex flex-col items-center justify-center w-full h-full space-y-1 active:scale-95 transition-transform",
                                             isActive ? "text-primary" : "text-muted-foreground hover:text-white"
                                         )}
                                     >
                                         <div className={cn(
-                                            "p-1.5 rounded-xl transition-all duration-300",
-                                            isActive && "bg-primary/20 shadow-[0_0_15px_-3px_rgba(255,255,255,0.3)] scale-110"
+                                            "p-1.5 rounded-xl transition-colors duration-200",
+                                            isActive && "bg-primary/20 shadow-[0_0_15px_-3px_rgba(255,255,255,0.3)]"
                                         )}>
                                             {isOpen ? <X className="h-5 w-5 fill-current" /> : <Grid className="h-5 w-5 fill-current" />}
                                         </div>
@@ -121,12 +122,12 @@ export function MobileNav() {
                                     href={link.href!}
                                     onClick={() => setIsOpen(false)}
                                     className={cn(
-                                        "flex flex-col items-center justify-center w-full h-full space-y-1",
+                                        "flex flex-col items-center justify-center w-full h-full space-y-1 active:scale-95 transition-transform",
                                         isActive ? "text-primary" : "text-muted-foreground hover:text-white"
                                     )}
                                 >
                                     <div className={cn(
-                                        "p-1.5 rounded-xl transition-all duration-300",
+                                        "p-1.5 rounded-xl transition-colors duration-200",
                                         isActive && "bg-primary/20 shadow-[0_0_15px_-3px_rgba(255,255,255,0.3)]"
                                     )}>
                                         <Icon className={cn("h-5 w-5", isActive && "fill-current")} />

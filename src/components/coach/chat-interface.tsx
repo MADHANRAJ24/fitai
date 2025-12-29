@@ -41,6 +41,34 @@ export function ChatInterface() {
         e.preventDefault()
         if (!input.trim()) return
 
+        // CHECK FREEMIUM LIMITS
+        const trial = await import("@/services/trial-service").then(m => m.trialService.getTrialData())
+        if (trial) {
+            const fallback = await import("@/services/trial-service").then(m => m.trialService.getFallbackFeatures(trial))
+
+            // If trial expired, check limits
+            if (fallback && fallback.dailyAIChat !== Infinity) {
+                const today = new Date().toDateString()
+                const usageKey = `fitai_chat_usage_${today}`
+                const currentUsage = parseInt(localStorage.getItem(usageKey) || '0')
+
+                if (currentUsage >= fallback.dailyAIChat) {
+                    const { toast } = await import("sonner")
+                    toast.error("Daily Free Limit Reached", {
+                        description: "Your trial has ended. You get 1 free chat per day!",
+                        action: {
+                            label: "Upgrade",
+                            onClick: () => window.location.href = "/dashboard/billing"
+                        }
+                    })
+                    return
+                }
+
+                // Increment usage
+                localStorage.setItem(usageKey, (currentUsage + 1).toString())
+            }
+        }
+
         const userMsg: Message = { id: Date.now().toString(), role: 'user', content: input }
         setMessages(prev => [...prev, userMsg])
         setInput("")

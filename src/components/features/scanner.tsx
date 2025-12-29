@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Camera, RefreshCw, Upload, X, ScanLine, Loader2 } from "lucide-react"
 import { motion, AnimatePresence } from "framer-motion"
+import { toast } from "sonner"
 
 interface ScannerProps {
     type: "food" | "body"
@@ -16,27 +17,107 @@ export function Scanner({ type, onScanComplete }: ScannerProps) {
     const webcamRef = useRef<Webcam>(null)
     const [imgSrc, setImgSrc] = useState<string | null>(null)
     const [isScanning, setIsScanning] = useState(false)
+    const [facingMode, setFacingMode] = useState<"user" | "environment">("user")
+    const fileInputRef = useRef<HTMLInputElement>(null)
+
+    const toggleCamera = () => {
+        setFacingMode(prev => prev === "user" ? "environment" : "user")
+    }
+
+    const processImage = (src: string) => {
+        setImgSrc(src)
+        setIsScanning(true)
+
+        // Simulate AI Processing & Validation
+        setTimeout(() => {
+            // Smart Validation Logic (Simulated)
+            // 30% chance to "fail" detection to simulate real AI checking
+            const isValid = Math.random() > 0.3
+
+            if (!isValid) {
+                setIsScanning(false)
+                setImgSrc(null)
+                // Specific error messages based on type
+                if (type === "food") {
+                    const msgs = ["No food detected. Please center the meal.", "Analysis unclear. Is this food?", "Object not recognized as edible."]
+                    toast.error(msgs[Math.floor(Math.random() * msgs.length)])
+                } else {
+                    const msgs = ["Person not fully visible.", "Low lighting detected. Please adjust.", "Posture not clear. Stand straight."]
+                    toast.error(msgs[Math.floor(Math.random() * msgs.length)])
+                }
+                return
+            }
+
+            setIsScanning(false)
+
+            // Diverse Mock Results to feel "Real"
+            let mockResult;
+
+            if (type === "food") {
+                const scenarios = [
+                    { name: "Avocado Toast", calories: 350, protein: "12g", fats: "18g", carbs: "45g" },
+                    { name: "Chicken Salad", calories: 420, protein: "35g", fats: "15g", carbs: "12g" },
+                    { name: "Protein Shake", calories: 180, protein: "25g", fats: "2g", carbs: "5g" },
+                    { name: "Pepperoni Pizza", calories: 285, protein: "12g", fats: "14g", carbs: "30g" },
+                    { name: "Greek Yogurt", calories: 120, protein: "15g", fats: "0g", carbs: "8g" }
+                ]
+                mockResult = scenarios[Math.floor(Math.random() * scenarios.length)]
+            } else {
+                const scenarios = [
+                    {
+                        posture: "Excellent",
+                        alignment: "98%",
+                        issues: ["None detected"],
+                        correction: "Maintain current form.",
+                        suggested_workout: "Maintainance Flow: Yoga & Light Cardio"
+                    },
+                    {
+                        posture: "Good",
+                        alignment: "92%",
+                        issues: ["Slight Forward Head"],
+                        correction: "Tuck chin slightly.",
+                        suggested_workout: "Neck Retractions & Face Pulls"
+                    },
+                    {
+                        posture: "Average",
+                        alignment: "85%",
+                        issues: ["Uneven Shoulders"],
+                        correction: "Engage core, level shoulders.",
+                        suggested_workout: "Single-Arm Dumbbell Rows"
+                    },
+                    {
+                        posture: "Needs Work",
+                        alignment: "78%",
+                        issues: ["Anterior Pelvic Tilt"],
+                        correction: "Strengthen glutes and abs.",
+                        suggested_workout: "Glute Bridges & Deadbugs"
+                    }
+                ]
+                mockResult = scenarios[Math.floor(Math.random() * scenarios.length)]
+            }
+
+            onScanComplete(mockResult)
+        }, 3000)
+    }
+
+    const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0]
+        if (file) {
+            const reader = new FileReader()
+            reader.onloadend = () => processImage(reader.result as string)
+            reader.readAsDataURL(file)
+        }
+    }
 
     const capture = useCallback(() => {
         const imageSrc = webcamRef.current?.getScreenshot()
-        if (imageSrc) {
-            setImgSrc(imageSrc)
-            setIsScanning(true)
-
-            // Simulate AI Processing
-            setTimeout(() => {
-                setIsScanning(false)
-                const mockResult = type === "food"
-                    ? { name: "Avocado Toast", calories: 350, protein: "12g", fats: "18g", carbs: "45g" }
-                    : { posture: "Good", alignment: "98%", issues: ["None detected"], correction: "Keep shoulders back" }
-                onScanComplete(mockResult)
-            }, 3000)
-        }
+        if (imageSrc) processImage(imageSrc)
     }, [webcamRef, onScanComplete, type])
 
     const retake = () => {
         setImgSrc(null)
         onScanComplete(null)
+        if (fileInputRef.current) fileInputRef.current.value = ""
     }
 
     return (
@@ -48,10 +129,25 @@ export function Scanner({ type, onScanComplete }: ScannerProps) {
                         ref={webcamRef}
                         screenshotFormat="image/jpeg"
                         className="w-full h-full object-cover"
-                        videoConstraints={{ facingMode: "user" }}
+                        videoConstraints={{ facingMode }}
                     />
+
+                    {/* Hidden File Input */}
+                    <input
+                        type="file"
+                        ref={fileInputRef}
+                        className="hidden"
+                        accept="image/*"
+                        onChange={handleFileUpload}
+                    />
+
                     <div className="absolute inset-x-0 bottom-0 p-6 flex justify-center items-center gap-8 bg-gradient-to-t from-black/80 to-transparent">
-                        <Button variant="ghost" size="icon" className="text-white hover:bg-white/10">
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            className="text-white hover:bg-white/10"
+                            onClick={() => fileInputRef.current?.click()}
+                        >
                             <Upload className="h-6 w-6" />
                         </Button>
                         <button
@@ -60,8 +156,13 @@ export function Scanner({ type, onScanComplete }: ScannerProps) {
                         >
                             <div className="h-12 w-12 rounded-full bg-white" />
                         </button>
-                        <Button variant="ghost" size="icon" className="text-white hover:bg-white/10">
-                            <RefreshCw className="h-6 w-6" />
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            className="text-white hover:bg-white/10"
+                            onClick={toggleCamera}
+                        >
+                            <RefreshCw className={`h-6 w-6 transition-transform ${facingMode === "environment" ? "rotate-180" : ""}`} />
                         </Button>
                     </div>
                     {/* Overlay Guide */}

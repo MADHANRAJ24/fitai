@@ -9,6 +9,7 @@ import { motion } from "framer-motion"
 import Link from "next/link"
 import { StatsService, UserStats } from "@/services/stats-service"
 import { WorkoutService, Workout } from "@/services/workout-service"
+import { ActivityService } from "@/services/activity-service"
 
 export default function DashboardPage() {
     const [isDownloading, setIsDownloading] = useState(false)
@@ -16,15 +17,29 @@ export default function DashboardPage() {
     const [recentWorkouts, setRecentWorkouts] = useState<Workout[]>([])
     const [isLoading, setIsLoading] = useState(true)
 
+    const [userName, setUserName] = useState("Agent")
+
     useEffect(() => {
         const loadDashboardData = async () => {
+            if (typeof window !== "undefined") {
+                const stored = localStorage.getItem("user_onboarding")
+                if (stored) {
+                    const data = JSON.parse(stored)
+                    if (data.name) setUserName(data.name)
+                }
+            }
             try {
                 const [statsData, workoutsData] = await Promise.all([
                     StatsService.getUserStats(),
                     WorkoutService.getRecentWorkouts()
                 ])
+
+                // Merge local session activities with historical data
+                const localActivities = ActivityService.getRecentWorkouts()
+                const mergedWorkouts = [...localActivities, ...workoutsData]
+
                 setStats(statsData)
-                setRecentWorkouts(workoutsData)
+                setRecentWorkouts(mergedWorkouts)
             } catch (error) {
                 console.error("Failed to load dashboard data", error)
             } finally {
@@ -32,6 +47,11 @@ export default function DashboardPage() {
             }
         }
         loadDashboardData()
+
+        // Listen for updates
+        const handleUpdate = () => loadDashboardData()
+        window.addEventListener("activity_logged", handleUpdate)
+        return () => window.removeEventListener("activity_logged", handleUpdate)
     }, [])
 
     const handleDownload = () => {
@@ -59,7 +79,7 @@ export default function DashboardPage() {
                     animate={{ opacity: 1, x: 0 }}
                     className="text-3xl font-bold tracking-tight text-white"
                 >
-                    Dashboard
+                    Welcome back, <span className="text-primary">{userName}</span>
                 </motion.h2>
                 <div className="flex items-center space-x-4">
                     <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>

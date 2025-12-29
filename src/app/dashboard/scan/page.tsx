@@ -8,6 +8,9 @@ import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { ScanFace, Utensils, Zap, CheckCircle2, ChevronRight, Scale } from "lucide-react"
 
+import { ActivityService } from "@/services/activity-service"
+import { toast } from "sonner"
+
 export default function ScanPage() {
     const [scanResult, setScanResult] = useState<any>(null)
     const [activeTab, setActiveTab] = useState("food")
@@ -121,7 +124,20 @@ export default function ScanPage() {
                                                             </motion.div>
                                                         ))}
                                                     </div>
-                                                    <Button className="w-full h-12 text-lg font-bold" variant="neon">
+                                                    <Button
+                                                        className="w-full h-12 text-lg font-bold"
+                                                        variant="neon"
+                                                        onClick={() => {
+                                                            ActivityService.saveActivity({
+                                                                type: "Scan",
+                                                                title: scanResult.name,
+                                                                details: `${scanResult.protein} Protein • ${scanResult.fats} Fat`,
+                                                                calories: scanResult.calories
+                                                            })
+                                                            toast.success("Meal logged to Nutrition Plan")
+                                                            setScanResult(null)
+                                                        }}
+                                                    >
                                                         Log to Nutrition <ChevronRight className="ml-2 h-4 w-4" />
                                                     </Button>
                                                 </>
@@ -155,6 +171,32 @@ export default function ScanPage() {
                                                         <p className="text-xs text-blue-400 font-bold uppercase mb-2">Recommendation</p>
                                                         <p className="text-sm text-white leading-relaxed">{scanResult.correction}</p>
                                                     </div>
+
+                                                    {scanResult.suggested_workout && (
+                                                        <div className="bg-primary/10 border border-primary/20 p-5 rounded-xl">
+                                                            <div className="flex items-center justify-between mb-2">
+                                                                <p className="text-xs text-primary font-bold uppercase">Recommended Correction</p>
+                                                                <Zap className="h-4 w-4 text-primary animate-pulse" />
+                                                            </div>
+                                                            <h4 className="font-bold text-white text-lg">{scanResult.suggested_workout}</h4>
+                                                            <Button
+                                                                size="sm"
+                                                                variant="outline"
+                                                                className="w-full mt-3 border-primary/30 hover:bg-primary/20 text-primary"
+                                                                onClick={() => {
+                                                                    ActivityService.saveActivity({
+                                                                        type: "Workout",
+                                                                        title: "Corrective Routine",
+                                                                        details: scanResult.suggested_workout,
+                                                                        calories: 150
+                                                                    })
+                                                                    toast.success("Corrective routine saved to Workouts")
+                                                                }}
+                                                            >
+                                                                Save Routine +
+                                                            </Button>
+                                                        </div>
+                                                    )}
                                                 </>
                                             )}
                                         </CardContent>
@@ -164,7 +206,7 @@ export default function ScanPage() {
                         </AnimatePresence>
                     </div>
                 </div>
-            </Tabs>
-        </div>
+            </Tabs >
+        </div >
     )
 }

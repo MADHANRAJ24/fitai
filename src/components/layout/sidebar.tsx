@@ -5,11 +5,13 @@ import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { LayoutDashboard, Activity, Utensils, Zap, Settings, LogOut, Dumbbell, ScanFace, Calendar, Users, Book, Sparkles, Watch, Beaker, Wallet, Sword, ChefHat } from "lucide-react"
+import { useAuth } from "@/context/auth-context"
 
 interface SidebarProps extends React.HTMLAttributes<HTMLDivElement> { }
 
 export function Sidebar({ className }: SidebarProps) {
     const pathname = usePathname()
+    const { signOut } = useAuth()
 
     const routes = [
         {
@@ -103,6 +105,18 @@ export function Sidebar({ className }: SidebarProps) {
             color: "text-orange-600",
         },
         {
+            label: "Body Profile",
+            icon: Activity,
+            href: "/dashboard/profile",
+            color: "text-teal-500",
+        },
+        {
+            label: "Billing",
+            icon: Wallet,
+            href: "/dashboard/billing",
+            color: "text-yellow-500",
+        },
+        {
             label: "Settings",
             icon: Settings,
             href: "/dashboard/settings",
@@ -120,7 +134,7 @@ export function Sidebar({ className }: SidebarProps) {
                 </div>
             </div>
 
-            <div className="flex-1 px-3 space-y-1 overflow-y-auto">
+            <div className="flex-1 px-3 space-y-1 overflow-y-auto custom-scrollbar">
                 {routes.map((route) => (
                     <Link
                         key={route.href}
@@ -138,12 +152,14 @@ export function Sidebar({ className }: SidebarProps) {
                 ))}
             </div>
             <div className="p-3 w-full pb-safe-bottom">
-                <Link href="/">
-                    <Button variant="ghost" className="w-full justify-start text-muted-foreground hover:text-red-500 hover:bg-red-500/10">
-                        <LogOut className="mr-2 h-4 w-4" />
-                        Logout
-                    </Button>
-                </Link>
+                <Button
+                    variant="ghost"
+                    className="w-full justify-start text-muted-foreground hover:text-red-500 hover:bg-red-500/10"
+                    onClick={() => signOut()}
+                >
+                    <LogOut className="mr-2 h-4 w-4" />
+                    Logout
+                </Button>
             </div>
         </div >
     )

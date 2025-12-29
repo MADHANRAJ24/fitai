@@ -21,8 +21,17 @@ export default function Onboarding() {
     const totalSteps = 3
 
     const nextStep = () => {
-        if (step < totalSteps) setStep(step + 1)
-        else router.push("/dashboard")
+        if (step < totalSteps) {
+            setStep(step + 1)
+        } else {
+            // Save to LocalStorage for persistence
+            if (typeof window !== "undefined") {
+                localStorage.setItem("user_onboarding", JSON.stringify(formData))
+                // Also trigger a custom event so components update immediately
+                window.dispatchEvent(new Event("user_updated"))
+            }
+            router.push("/dashboard")
+        }
     }
 
     const updateData = (key: string, value: string) => {

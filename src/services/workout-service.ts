@@ -1,7 +1,7 @@
 import { supabase } from "@/lib/supabase"
 
 export interface Workout {
-    id: number
+    id: number | string
     title: string
     date: string
     duration: string

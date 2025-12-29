@@ -9,12 +9,19 @@ import { useState, useEffect } from "react"
 import { Workout, WorkoutService } from "@/services/workout-service"
 import { motion } from "framer-motion"
 
+import { ActivityService } from "@/services/activity-service"
+
 export default function WorkoutsPage() {
     const [workouts, setWorkouts] = useState<Workout[]>([])
     const [isLogging, setIsLogging] = useState(false)
 
     useEffect(() => {
-        WorkoutService.getRecentWorkouts().then(setWorkouts)
+        const loadWorkouts = async () => {
+            const staticWorkouts = await WorkoutService.getRecentWorkouts()
+            const localWorkouts = ActivityService.getRecentWorkouts()
+            setWorkouts([...localWorkouts, ...staticWorkouts])
+        }
+        loadWorkouts()
     }, [])
 
     const handleLogWorkout = () => {

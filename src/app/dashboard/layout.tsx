@@ -1,6 +1,7 @@
 import { Sidebar } from "@/components/layout/sidebar"
 import { MobileNav } from "@/components/layout/mobile-nav"
 import DashboardShell from "@/components/layout/dashboard-shell"
+import { SubscriptionStatus } from "@/components/features/subscription-status"
 
 export default function Layout({
     children,
@@ -19,6 +20,7 @@ export default function Layout({
 
             {/* Main Content Area */}
             <div className="md:pl-64 pb-20 md:pb-0">
+                <SubscriptionStatus />
                 <DashboardShell>{children}</DashboardShell>
             </div>
         </div>

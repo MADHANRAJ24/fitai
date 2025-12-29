@@ -1,31 +1,155 @@
 "use client"
 
-import { useState, useRef } from "react"
+import { useState, useRef, useEffect } from "react"
+import Link from "next/link"
 import { motion, AnimatePresence } from "framer-motion"
-import { Camera, Upload, AlertTriangle, Flame, ArrowRight, History, Share2 } from "lucide-react"
-import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card"
+import { Camera, Upload, AlertTriangle, Flame, ArrowRight, History, Share2, Trash2 } from "lucide-react"
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Progress } from "@/components/ui/progress"
-import { Badge } from "@/components/ui/badge"
+import { toast } from "sonner"
+
+interface EgoLog {
+    id: number
+    photo: string // base64
+    date: string
+}
+
+const STORAGE_KEY = "ego_chamber_logs"
+const STREAK_KEY = "ego_streak_data"
+
+const MOTIVATIONAL_QUOTES = [
+    "Success is rented, and the rent is due every day. You haven't paid today.",
+    "Your body keeps score. What story are you writing?",
+    "Discipline is choosing between what you want NOW and what you want MOST.",
+    "The pain of discipline is nothing compared to the pain of regret.",
+    "Champions don't show up to get everything they want; they show up to give everything they have.",
+]
 
 export default function EgoPage() {
-    const [photos, setPhotos] = useState<string[]>([])
+    const [logs, setLogs] = useState<EgoLog[]>([])
     const [streak, setStreak] = useState(0)
-    const [showWarning, setShowWarning] = useState(true) // Simulate strict mode
+    const [lastLogDate, setLastLogDate] = useState<string | null>(null)
+    const [showWarning, setShowWarning] = useState(true)
+    const [beastMode, setBeastMode] = useState(false)
+    const [quote, setQuote] = useState(MOTIVATIONAL_QUOTES[0])
     const fileInputRef = useRef<HTMLInputElement>(null)
 
-    const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0]
-        if (file) {
-            const url = URL.createObjectURL(file)
-            setPhotos([url, ...photos])
-            setStreak(s => s + 1)
-            setShowWarning(false)
+    useEffect(() => {
+        loadData()
+        setQuote(MOTIVATIONAL_QUOTES[Math.floor(Math.random() * MOTIVATIONAL_QUOTES.length)])
+    }, [])
+
+    const loadData = () => {
+        if (typeof window === 'undefined') return
+
+        // Load logs
+        const storedLogs = localStorage.getItem(STORAGE_KEY)
+        if (storedLogs) {
+            setLogs(JSON.parse(storedLogs))
+        }
+
+        // Load streak data
+        const streakData = localStorage.getItem(STREAK_KEY)
+        if (streakData) {
+            const { streak: s, lastDate } = JSON.parse(streakData)
+            setStreak(s)
+            setLastLogDate(lastDate)
+
+            // Check if logged today
+            const today = new Date().toDateString()
+            if (lastDate === today) {
+                setShowWarning(false)
+            }
         }
     }
 
+    const saveData = (newLogs: EgoLog[], newStreak: number, date: string) => {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(newLogs))
+        localStorage.setItem(STREAK_KEY, JSON.stringify({ streak: newStreak, lastDate: date }))
+    }
+
+    const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0]
+        if (!file) return
+
+        const reader = new FileReader()
+        reader.onloadend = () => {
+            const base64 = reader.result as string
+            const today = new Date().toDateString()
+
+            // Check if already logged today
+            if (lastLogDate === today) {
+                toast.info("Already logged today! Keep it up 💪")
+                return
+            }
+
+            // Calculate streak
+            let newStreak = 1
+            if (lastLogDate) {
+                const yesterday = new Date()
+                yesterday.setDate(yesterday.getDate() - 1)
+                if (lastLogDate === yesterday.toDateString()) {
+                    newStreak = streak + 1
+                }
+            }
+
+            const newLog: EgoLog = {
+                id: Date.now(),
+                photo: base64,
+                date: today
+            }
+
+            const newLogs = [newLog, ...logs]
+            setLogs(newLogs)
+            setStreak(newStreak)
+            setLastLogDate(today)
+            setShowWarning(false)
+            saveData(newLogs, newStreak, today)
+
+            toast.success(`Day ${newStreak} logged! 🔥`)
+        }
+        reader.readAsDataURL(file)
+    }
+
+    const handleDelete = (id: number) => {
+        const newLogs = logs.filter(l => l.id !== id)
+        setLogs(newLogs)
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(newLogs))
+        toast.success("Photo removed")
+    }
+
+    const activateBeastMode = () => {
+        setBeastMode(true)
+        toast.success("BEAST MODE ACTIVATED! 🔥", {
+            description: "No excuses. Maximum effort.",
+            duration: 3000
+        })
+        setTimeout(() => setBeastMode(false), 5000)
+    }
+
+    // Calculate discipline level based on streak
+    const disciplineLevel = Math.min(100, streak * 10)
+    const disciplineLabel = disciplineLevel >= 70 ? "High" : disciplineLevel >= 40 ? "Medium" : "Low"
+    const disciplineColor = disciplineLevel >= 70 ? "text-green-400" : disciplineLevel >= 40 ? "text-yellow-400" : "text-red-400"
+    const barColor = disciplineLevel >= 70 ? "bg-green-500" : disciplineLevel >= 40 ? "bg-yellow-500" : "bg-red-500"
+
     return (
-        <div className="space-y-8 h-[calc(100vh-8rem)] overflow-y-auto pr-2 custom-scrollbar">
+        <div className={`space-y-8 h-[calc(100vh-8rem)] overflow-y-auto pr-2 custom-scrollbar transition-all ${beastMode ? "animate-pulse" : ""}`}>
+            {/* Beast Mode Overlay */}
+            <AnimatePresence>
+                {beastMode && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="fixed inset-0 bg-orange-500/20 pointer-events-none z-50"
+                    >
+                        <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_0%,rgba(0,0,0,0.8)_100%)]" />
+                    </motion.div>
+                )}
+            </AnimatePresence>
+
             {/* Strict Mode Warning */}
             <AnimatePresence>
                 {showWarning && (
@@ -61,18 +185,23 @@ export default function EgoPage() {
             <div className="flex items-center justify-between">
                 <div>
                     <h2 className="text-3xl font-bold tracking-tight text-white flex items-center gap-2">
-                        <Flame className="h-8 w-8 text-orange-500" />
+                        <Flame className={`h-8 w-8 ${beastMode ? "text-red-500 animate-bounce" : "text-orange-500"}`} />
                         Ego Chamber
                     </h2>
                     <p className="text-muted-foreground">Visual proof of your evolution. No excuses.</p>
                 </div>
                 <div className="flex items-center gap-4">
-                    <div className="text-right">
+                    <motion.div
+                        className="text-right"
+                        animate={streak > 0 ? { scale: [1, 1.05, 1] } : {}}
+                        transition={{ duration: 0.5 }}
+                    >
                         <div className="text-2xl font-bold text-white flex items-center justify-end gap-2">
+                            <Flame className={`h-5 w-5 ${streak >= 7 ? "text-orange-500" : "text-muted-foreground"}`} />
                             {streak} <span className="text-sm font-normal text-muted-foreground">DAYS</span>
                         </div>
                         <div className="text-xs text-orange-500 font-bold uppercase tracking-wider">Current Streak</div>
-                    </div>
+                    </motion.div>
                 </div>
             </div>
 
@@ -89,6 +218,7 @@ export default function EgoPage() {
                             ref={fileInputRef}
                             className="hidden"
                             accept="image/*"
+                            capture="environment"
                             onChange={handlePhotoUpload}
                         />
                         <div
@@ -109,7 +239,7 @@ export default function EgoPage() {
                     <CardHeader className="flex flex-row items-center justify-between">
                         <div>
                             <CardTitle>Evolution Gallery</CardTitle>
-                            <CardDescription>Your visual timeline.</CardDescription>
+                            <CardDescription>Your visual timeline ({logs.length} photos).</CardDescription>
                         </div>
                         <Button variant="ghost" size="icon">
                             <History className="h-5 w-5 text-muted-foreground" />
@@ -117,22 +247,30 @@ export default function EgoPage() {
                     </CardHeader>
                     <CardContent className="h-[400px] overflow-y-auto custom-scrollbar p-2">
                         <div className="grid grid-cols-2 gap-2">
-                            {photos.length > 0 ? (
-                                photos.map((photo, i) => (
+                            {logs.length > 0 ? (
+                                logs.map((log, i) => (
                                     <motion.div
-                                        key={i}
+                                        key={log.id}
                                         initial={{ opacity: 0, scale: 0.9 }}
                                         animate={{ opacity: 1, scale: 1 }}
                                         className="aspect-[3/4] rounded-lg bg-black/50 overflow-hidden relative group"
                                     >
-                                        <img src={photo} alt="Progress" className="w-full h-full object-cover" />
+                                        <img src={log.photo} alt="Progress" className="w-full h-full object-cover" />
                                         <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
-                                            <Button size="icon" variant="secondary" className="rounded-full h-8 w-8">
-                                                <Share2 className="h-4 w-4" />
+                                            <Button
+                                                size="icon"
+                                                variant="destructive"
+                                                className="rounded-full h-8 w-8"
+                                                onClick={() => handleDelete(log.id)}
+                                            >
+                                                <Trash2 className="h-4 w-4" />
                                             </Button>
                                         </div>
                                         <div className="absolute bottom-2 left-2 px-2 py-1 bg-black/80 rounded text-[10px] font-mono text-white">
-                                            DAY {streak - i}
+                                            DAY {logs.length - i}
+                                        </div>
+                                        <div className="absolute top-2 right-2 px-2 py-1 bg-black/80 rounded text-[10px] font-mono text-muted-foreground">
+                                            {new Date(log.date).toLocaleDateString()}
                                         </div>
                                     </motion.div>
                                 ))
@@ -153,26 +291,38 @@ export default function EgoPage() {
                         <CardTitle className="flex items-center gap-2">
                             <AlertTriangle className="h-5 w-5 text-orange-500" /> Reality Check
                         </CardTitle>
-                        <CardDescription>AI-generated motivation based on lack of activity.</CardDescription>
+                        <CardDescription>AI-generated motivation based on your activity.</CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-6">
                         <div className="p-4 bg-orange-500/10 border border-orange-500/20 rounded-xl">
                             <p className="text-sm font-medium text-orange-200 italic">
-                                &quot;Success is rented, and the rent is due every day. You haven&apos;t paid today.&quot;
+                                &quot;{quote}&quot;
                             </p>
                         </div>
 
                         <div className="space-y-2">
                             <div className="flex justify-between text-xs font-bold uppercase tracking-wider">
                                 <span>Discipline Level</span>
-                                <span className="text-red-400">Low</span>
+                                <span className={disciplineColor}>{disciplineLabel}</span>
                             </div>
-                            <Progress value={35} className="bg-white/10" indicatorClassName="bg-red-500" />
-                            <p className="text-xs text-muted-foreground text-right pt-1">Danger Zone</p>
+                            <div className="h-2 bg-white/10 rounded-full overflow-hidden">
+                                <motion.div
+                                    initial={{ width: 0 }}
+                                    animate={{ width: `${disciplineLevel}%` }}
+                                    transition={{ duration: 1 }}
+                                    className={`h-full rounded-full ${barColor}`}
+                                />
+                            </div>
+                            <p className="text-xs text-muted-foreground text-right pt-1">
+                                {disciplineLevel >= 70 ? "Champion Zone 🏆" : disciplineLevel >= 40 ? "Building Momentum..." : "Danger Zone"}
+                            </p>
                         </div>
 
-                        <Button className="w-full bg-white text-black hover:bg-white/90 font-bold">
-                            ACTIVATE BEAST MODE <ArrowRight className="h-4 w-4 ml-2" />
+                        <Button
+                            onClick={activateBeastMode}
+                            className="w-full bg-white text-black hover:bg-white/90 font-bold"
+                        >
+                            ACTIVATE BEAST MODE <Flame className="h-4 w-4 ml-2" />
                         </Button>
                     </CardContent>
                 </Card>
