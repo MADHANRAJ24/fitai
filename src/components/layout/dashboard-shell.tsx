@@ -1,3 +1,5 @@
+import { AdBanner } from "@/components/features/ad-banner"
+
 export default function DashboardLayout({
     children,
 }: {
@@ -11,6 +13,7 @@ export default function DashboardLayout({
 
             <div className="ml-0 lg:ml-64 p-8">
                 {children}
+                <AdBanner />
             </div>
         </div>
     )

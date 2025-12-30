@@ -47,7 +47,7 @@ export default function Home() {
             className="text-xl text-gray-400 max-w-2xl leading-relaxed font-light"
           >
             The world's first <span className="text-white font-medium">Bio-Hacking Operating System</span>.
-            Powered by Grok AI to optimize your sleep, training, and longevity in real-time.
+            Powered by Advanced AI to optimize your sleep, training, and longevity in real-time.
           </motion.p>
 
           <motion.div

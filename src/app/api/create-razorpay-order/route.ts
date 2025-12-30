@@ -32,7 +32,7 @@ export async function POST(request: Request) {
     } catch (error) {
         console.error("Razorpay Error:", error);
         return NextResponse.json(
-            { error: "Could not create order" },
+            { error: "Could not create order", details: (error as any).message || JSON.stringify(error) },
             { status: 500 }
         );
     }
