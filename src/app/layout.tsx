@@ -44,6 +44,7 @@ import { VoiceCommand } from "@/components/features/voice-command"
 import { CookieConsent } from "@/components/ui/cookie-consent"
 import { SplashScreen } from "@/components/ui/splash-screen"
 import { Toaster } from "sonner"
+import Script from "next/script"
 
 export default function RootLayout({
   children,
@@ -61,6 +62,7 @@ export default function RootLayout({
           <VoiceCommand />
           <CookieConsent />
           <Toaster position="top-center" richColors />
+          <Script src="https://checkout.razorpay.com/v1/checkout.js" strategy="lazyOnload" />
         </AuthProvider>
       </body>
     </html>
