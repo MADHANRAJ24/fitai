@@ -43,6 +43,7 @@ import { AuthProvider } from "@/context/auth-context"
 import { VoiceCommand } from "@/components/features/voice-command"
 import { CookieConsent } from "@/components/ui/cookie-consent"
 import { SplashScreen } from "@/components/ui/splash-screen"
+import { Toaster } from "sonner"
 
 export default function RootLayout({
   children,
@@ -59,6 +60,7 @@ export default function RootLayout({
           {children}
           <VoiceCommand />
           <CookieConsent />
+          <Toaster position="top-center" richColors />
         </AuthProvider>
       </body>
     </html>
