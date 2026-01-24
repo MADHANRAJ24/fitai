@@ -119,12 +119,11 @@ class TrialService {
             return { smartSchedule: true, dailyAIChat: Infinity }
         }
 
-        // Freemium Fallback (Soft Downgrade)
-        // Even after trial ends, keep these features
+        // Freemium Fallback (Ads enabled, Features limited)
         if (!trial.isActive) {
             return {
-                smartSchedule: true, // Bonus: Keep Smart Schedule!
-                dailyAIChat: 1 // Bonus: 1 chat per day
+                smartSchedule: false, // Locked
+                dailyAIChat: 0 // Locked
             }
         }
 

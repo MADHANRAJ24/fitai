@@ -6,49 +6,71 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Utensils, ScanBarcode, Droplets, Apple, Plus, Search, Loader2 } from "lucide-react"
 import { motion } from "framer-motion"
-import { StatsService } from "@/services/stats-service"
 import { ActivityService } from "@/services/activity-service"
+import { bodyProfileService } from "@/services/body-profile-service"
 import { useRouter } from "next/navigation"
+import { toast } from "sonner"
 
 export default function NutritionPage() {
     const router = useRouter()
-    const [hydration, setHydration] = useState(1.2)
+    const [hydration, setHydration] = useState(0)
     const [calories, setCalories] = useState(0)
+    const [targets, setTargets] = useState({ calories: 2000, protein: 150, carbs: 250, fats: 70 })
     const [meals, setMeals] = useState<any[]>([])
     const [isScanning, setIsScanning] = useState(false)
 
     useEffect(() => {
-        // Load stats from Activity Service
-        const loadNutrition = () => {
-            const activities = ActivityService.getActivities()
-
-            // Filter for Nutrition/Scan items
-            const foodItems = activities.filter(a => a.type === "Nutrition" || a.type === "Scan")
-
-            // Calculate total calories
-            // Calculate total calories
-            const totalCals = foodItems.reduce((sum, item) => {
-                const val = typeof item.calories === 'string' ? parseInt(item.calories) : item.calories
-                return sum + (Number(val) || 0)
-            }, 0)
-
-            // Format for display
-            const formattedMeals = foodItems.map(item => ({
-                id: item.id,
-                type: item.type === "Scan" ? "Scanned Food" : "Meal",
-                time: item.date, // Simplification
-                items: [item.title],
-                cals: item.calories
-            }))
-
-            setCalories(totalCals)
-            setMeals(formattedMeals)
-        }
-        loadNutrition()
+        loadData()
     }, [])
 
+    const loadData = () => {
+        // 1. Get Targets from Profile
+        const profile = bodyProfileService.getProfile()
+        if (profile) {
+            const tdee = bodyProfileService.getRecommendedCalories(profile)
+            setTargets({
+                calories: tdee,
+                protein: Math.round((tdee * 0.3) / 4), // 30% Protein
+                carbs: Math.round((tdee * 0.45) / 4), // 45% Carbs
+                fats: Math.round((tdee * 0.25) / 9),  // 25% Fats
+            })
+        }
+
+        // 2. Get Activities
+        const activities = ActivityService.getActivities()
+
+        // Filter Today's Items
+        const today = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+        const todaysItems = activities.filter(a => a.date === today)
+
+        // 3. Hydration
+        const waterLogs = todaysItems.filter(a => a.type === 'Nutrition' && a.title === 'Water')
+        const totalWater = waterLogs.reduce((sum, item) => sum + 0.25, 0) // Each log is 250ml (0.25L)
+        setHydration(totalWater)
+
+        // 4. Food / Calories
+        const foodItems = todaysItems.filter(a => (a.type === "Nutrition" && a.title !== 'Water') || a.type === "Scan")
+        const totalCals = foodItems.reduce((sum, item) => sum + (Number(item.calories) || 0), 0)
+
+        setCalories(totalCals)
+        setMeals(foodItems.map(item => ({
+            id: item.id,
+            type: item.type === "Scan" ? "Scanned Food" : "Meal",
+            time: new Date(item.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            items: [item.title],
+            cals: item.calories
+        })))
+    }
+
     const addWater = () => {
-        setHydration(prev => Math.min(prev + 0.25, 3.0))
+        ActivityService.saveActivity({
+            type: 'Nutrition',
+            title: 'Water',
+            details: '250ml Hydration',
+            calories: 0
+        })
+        toast.success("Hydration Recorded 💧")
+        loadData()
     }
 
     const handleScan = () => {
@@ -56,8 +78,16 @@ export default function NutritionPage() {
         router.push("/dashboard/scan")
     }
 
+    // Estimate Macros based on Calories (since simple logs might not have macro breakdown)
+    // In a real app, this would sum actual macros from `details` JSON
+    const currentMacros = {
+        protein: Math.round(calories * 0.25 / 4),
+        carbs: Math.round(calories * 0.50 / 4),
+        fats: Math.round(calories * 0.25 / 9)
+    }
+
     return (
-        <div className="space-y-6 h-[calc(100vh-8rem)]">
+        <div className="space-y-6 h-[calc(100vh-8rem)] overflow-y-auto pr-2 custom-scrollbar">
             <div className="flex items-center justify-between">
                 <motion.div
                     initial={{ opacity: 0, x: -20 }}
@@ -80,10 +110,10 @@ export default function NutritionPage() {
             <div className="grid gap-6 md:grid-cols-4">
                 {/* Macro Cards */}
                 {[
-                    { label: "Calories", current: calories, total: 2400, unit: "kcal", color: "text-white", barColor: "bg-white" },
-                    { label: "Protein", current: 110, total: 180, unit: "g", color: "text-emerald-400", barColor: "bg-emerald-400" },
-                    { label: "Carbs", current: 140, total: 250, unit: "g", color: "text-sky-400", barColor: "bg-sky-400" },
-                    { label: "Fats", current: 45, total: 70, unit: "g", color: "text-pink-400", barColor: "bg-pink-400" },
+                    { label: "Calories", current: calories, total: targets.calories, unit: "kcal", color: "text-white", barColor: "bg-white" },
+                    { label: "Protein", current: currentMacros.protein, total: targets.protein, unit: "g", color: "text-emerald-400", barColor: "bg-emerald-400" },
+                    { label: "Carbs", current: currentMacros.carbs, total: targets.carbs, unit: "g", color: "text-sky-400", barColor: "bg-sky-400" },
+                    { label: "Fats", current: currentMacros.fats, total: targets.fats, unit: "g", color: "text-pink-400", barColor: "bg-pink-400" },
                 ].map((macro, i) => (
                     <motion.div
                         key={i}
@@ -147,7 +177,7 @@ export default function NutritionPage() {
                                         strokeLinecap="round"
                                         strokeDasharray="283"
                                         initial={{ strokeDashoffset: 283 }}
-                                        animate={{ strokeDashoffset: 283 - (283 * (hydration / 3)) }}
+                                        animate={{ strokeDashoffset: 283 - (283 * (Math.min(hydration, 3) / 3)) }}
                                         transition={{ duration: 1, type: "spring" }}
                                     />
                                 </svg>
@@ -190,7 +220,7 @@ export default function NutritionPage() {
                     <CardContent>
                         <ScrollArea className="h-[300px] pr-4">
                             <div className="space-y-4">
-                                {meals.map((meal, i) => (
+                                {meals.length > 0 ? meals.map((meal, i) => (
                                     <motion.div
                                         key={meal.id}
                                         initial={{ opacity: 0, x: 20 }}
@@ -212,7 +242,12 @@ export default function NutritionPage() {
                                         </div>
                                         <div className="font-bold text-white">{meal.cals} kcal</div>
                                     </motion.div>
-                                ))}
+                                )) : (
+                                    <div className="flex flex-col items-center justify-center h-40 text-muted-foreground text-sm">
+                                        <Apple className="h-8 w-8 mb-2 opacity-20" />
+                                        No meals logged today.
+                                    </div>
+                                )}
                             </div>
                         </ScrollArea>
                     </CardContent>

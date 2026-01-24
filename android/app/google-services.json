@@ -1,0 +1,55 @@
+{
+  "project_info": {
+    "project_number": "149062085555",
+    "project_id": "madhan-a907d",
+    "storage_bucket": "madhan-a907d.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:149062085555:android:b983d744119a83539ff9c6",
+        "android_client_info": {
+          "package_name": "com.mathan.fitai.app"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "149062085555-2hnm16stf2qv9enloivaf315dahdh45t.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.mathan.fitai.app",
+            "certificate_hash": "6c17a509e36bd22dc3b0a86e32ba2143447ea5f5"
+          }
+        },
+        {
+          "client_id": "149062085555-e0q9vvjjl2752v0oo78tfo3ep317nf9n.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.mathan.fitai.app",
+            "certificate_hash": "5399b3c32071f76cc06647da818c8a6c1ccf5a5b"
+          }
+        },
+        {
+          "client_id": "149062085555-j6r5ednpkjmc1s5oh1agrjjmsck66am3.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBmfkymmMnx0FESL8NBdTAf6pB27_28FEw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "149062085555-j6r5ednpkjmc1s5oh1agrjjmsck66am3.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

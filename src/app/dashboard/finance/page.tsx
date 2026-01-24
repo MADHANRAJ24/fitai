@@ -47,7 +47,14 @@ export default function FinancePage() {
     const loadData = () => {
         const expenseList = expenseService.getExpenses()
         setExpenses(expenseList)
-        setStats(expenseService.getStats(24)) // Assuming 24 workouts
+
+        // Get Real Workout Count
+        import("@/services/activity-service").then(m => {
+            const activities = m.ActivityService.getActivities()
+            const workoutCount = activities.filter(a => a.type === 'Workout').length
+            // Default to 1 to avoid division by zero or negative ROI in early stages
+            setStats(expenseService.getStats(workoutCount || 1))
+        })
     }
 
     const handleAddExpense = () => {

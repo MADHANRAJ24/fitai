@@ -1,38 +1,43 @@
+
+
 apply plugin: 'com.android.application'
 
 android {
-    namespace = "com.fitai.app"
+    namespace = "com.mathan.fitai.app"
     compileSdk = rootProject.ext.compileSdkVersion
     defaultConfig {
-        applicationId "com.fitai.app"
+        applicationId "com.mathan.fitai.app"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 1
-        versionName "1.0"
+        versionCode 112
+        versionName "1.1.12"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+        ndk {
+            debugSymbolLevel 'FULL'
+        }
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
              // Default: https://android.googlesource.com/platform/frameworks/base/+/282e181b58cf72b6ca770dc7ca5f91f135444502/tools/aapt/AaptAssets.cpp#61
             ignoreAssetsPattern = '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
         }
     }
+    signingConfigs {
+        release {
+            storeFile file("fitai-key.jks")
+            storePassword "FitAI2025"
+            keyAlias "key0"
+            keyPassword "FitAI2025"
+        }
+    }
     buildTypes {
         release {
+            signingConfig signingConfigs.release
             minifyEnabled false
-            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            shrinkResources false
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
     }
-    testOptions {
-        managedDevices {
-            devices {
-                pixel2api29 (com.android.build.api.dsl.ManagedVirtualDevice) {
-                    device = "Pixel 2"
-                    apiLevel = 29
-                    systemImageSource = "google"
-                }
-            }
-        }
-    }
+
 }
 
 repositories {
@@ -50,6 +55,7 @@ dependencies {
     testImplementation "junit:junit:$junitVersion"
     androidTestImplementation "androidx.test.ext:junit:$androidxJunitVersion"
     androidTestImplementation "androidx.test.espresso:espresso-core:$androidxEspressoCoreVersion"
+    implementation "androidx.activity:activity:$androidxActivityVersion"
     implementation project(':capacitor-cordova-android-plugins')
 }
 
@@ -60,6 +66,6 @@ try {
     if (servicesJSON.text) {
         apply plugin: 'com.google.gms.google-services'
     }
-} catch(Exception e) {
+} catch(Exception ignored) {
     logger.info("google-services.json not found, google-services plugin not applied. Push Notifications won't work")
 }

@@ -20,6 +20,7 @@ export interface BodyProfile {
         allergies: string[]
         dailyCalorieTarget: number
     }
+    photoUrl?: string
     createdAt: string
     updatedAt: string
 }
@@ -43,6 +44,19 @@ class BodyProfileService {
         return stored ? JSON.parse(stored) : null
     }
 
+    isProfileComplete(): boolean {
+        const profile = this.getProfile()
+        if (!profile) return false
+
+        // Check for mandatory fields
+        return !!(
+            profile.height > 0 &&
+            profile.weight > 0 &&
+            profile.age > 0 &&
+            profile.gender
+        )
+    }
+
     saveProfile(profile: Omit<BodyProfile, 'createdAt' | 'updatedAt'>): BodyProfile {
         const existingProfile = this.getProfile()
         const fullProfile: BodyProfile = {
@@ -51,6 +65,23 @@ class BodyProfileService {
             updatedAt: new Date().toISOString()
         }
         localStorage.setItem(STORAGE_KEY, JSON.stringify(fullProfile))
+
+        // Auto-Backup if user is logged in
+        if (typeof window !== 'undefined') {
+            import("@/lib/supabase").then(({ supabase }) => {
+                supabase.auth.getSession().then(({ data }) => {
+                    if (data.session?.user?.email) {
+                        import("@/services/cloud-sync-service").then(({ CloudSyncService }) => {
+                            CloudSyncService.syncUp(data.session.user.email!)
+                        })
+                        // Also keep local backup for offline support
+                        import("./user-storage-service").then(({ UserStorageService }) => {
+                            UserStorageService.saveUserData(data.session.user.email!)
+                        })
+                    }
+                })
+            })
+        }
         return fullProfile
     }
 
@@ -131,6 +162,31 @@ class BodyProfileService {
             default:
                 return { sets: 3, reps: '10-12' }
         }
+    }
+
+    /**
+     * Creates a partial or full profile from simple onboarding data
+     */
+    initializeFromOnboarding(onboardingData: any): BodyProfile {
+        const base: BodyProfile = {
+            height: Number(onboardingData.height) || 0,
+            weight: Number(onboardingData.weight) || 0,
+            age: Number(onboardingData.age) || 25, // Default if missing
+            gender: onboardingData.gender || 'male', // Default if missing
+            fitnessLevel: 'intermediate',
+            goal: onboardingData.goal === 'Fat Loss (Shred)' ? 'lose_weight' :
+                onboardingData.goal === 'Hypertrophy (Muscle)' ? 'build_muscle' :
+                    onboardingData.goal === 'Longevity (Health)' ? 'endurance' : 'maintain',
+            conditions: [],
+            dietary: { preference: 'non-veg', allergies: [], dailyCalorieTarget: 2000 },
+            photoUrl: '',
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString()
+        }
+
+        // Save immediately
+        this.saveProfile(base)
+        return base
     }
 }
 

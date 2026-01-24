@@ -24,113 +24,174 @@ export function Scanner({ type, onScanComplete }: ScannerProps) {
         setFacingMode(prev => prev === "user" ? "environment" : "user")
     }
 
-    const processImage = (src: string) => {
-        setImgSrc(src)
-        setIsScanning(true)
+    const capture = useCallback(() => {
+        const imageSrc = webcamRef.current?.getScreenshot()
+        if (imageSrc) {
+            processImage(imageSrc)
+        }
+    }, [webcamRef])
 
-        // Simulate AI Processing & Validation
-        setTimeout(() => {
-            // Smart Validation Logic (Simulated)
-            // 30% chance to "fail" detection to simulate real AI checking
-            const isValid = Math.random() > 0.3
-
-            if (!isValid) {
-                setIsScanning(false)
-                setImgSrc(null)
-                // Specific error messages based on type
-                if (type === "food") {
-                    const msgs = ["No food detected. Please center the meal.", "Analysis unclear. Is this food?", "Object not recognized as edible."]
-                    toast.error(msgs[Math.floor(Math.random() * msgs.length)])
-                } else {
-                    const msgs = ["Person not fully visible.", "Low lighting detected. Please adjust.", "Posture not clear. Stand straight."]
-                    toast.error(msgs[Math.floor(Math.random() * msgs.length)])
-                }
-                return
-            }
-
-            setIsScanning(false)
-
-            // Diverse Mock Results to feel "Real"
-            let mockResult;
-
-            if (type === "food") {
-                const scenarios = [
-                    { name: "Avocado Toast", calories: 350, protein: "12g", fats: "18g", carbs: "45g" },
-                    { name: "Chicken Salad", calories: 420, protein: "35g", fats: "15g", carbs: "12g" },
-                    { name: "Protein Shake", calories: 180, protein: "25g", fats: "2g", carbs: "5g" },
-                    { name: "Pepperoni Pizza", calories: 285, protein: "12g", fats: "14g", carbs: "30g" },
-                    { name: "Greek Yogurt", calories: 120, protein: "15g", fats: "0g", carbs: "8g" }
-                ]
-                mockResult = scenarios[Math.floor(Math.random() * scenarios.length)]
-            } else {
-                const scenarios = [
-                    {
-                        posture: "Excellent",
-                        alignment: "98%",
-                        issues: ["None detected"],
-                        correction: "Maintain current form.",
-                        suggested_workout: "Maintainance Flow: Yoga & Light Cardio"
-                    },
-                    {
-                        posture: "Good",
-                        alignment: "92%",
-                        issues: ["Slight Forward Head"],
-                        correction: "Tuck chin slightly.",
-                        suggested_workout: "Neck Retractions & Face Pulls"
-                    },
-                    {
-                        posture: "Average",
-                        alignment: "85%",
-                        issues: ["Uneven Shoulders"],
-                        correction: "Engage core, level shoulders.",
-                        suggested_workout: "Single-Arm Dumbbell Rows"
-                    },
-                    {
-                        posture: "Needs Work",
-                        alignment: "78%",
-                        issues: ["Anterior Pelvic Tilt"],
-                        correction: "Strengthen glutes and abs.",
-                        suggested_workout: "Glute Bridges & Deadbugs"
-                    }
-                ]
-                mockResult = scenarios[Math.floor(Math.random() * scenarios.length)]
-            }
-
-            onScanComplete(mockResult)
-        }, 3000)
+    const retake = () => {
+        setImgSrc(null)
+        setIsScanning(false)
     }
 
     const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0]
         if (file) {
             const reader = new FileReader()
-            reader.onloadend = () => processImage(reader.result as string)
+            reader.onloadend = () => {
+                processImage(reader.result as string)
+            }
             reader.readAsDataURL(file)
         }
     }
 
-    const capture = useCallback(() => {
-        const imageSrc = webcamRef.current?.getScreenshot()
-        if (imageSrc) processImage(imageSrc)
-    }, [webcamRef, onScanComplete, type])
+    const processImage = async (src: string) => {
+        setImgSrc(src)
+        setIsScanning(true)
 
-    const retake = () => {
-        setImgSrc(null)
-        onScanComplete(null)
-        if (fileInputRef.current) fileInputRef.current.value = ""
+        try {
+            // REAL AI IMPLEMENTATION (Server-Side Grok) on Client
+            // We verify if the API route works, if not we fall back to demo
+
+            const response = await fetch('/api/scan', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    image: src, // Send full data URL
+                    type: type
+                })
+            })
+
+
+            const result = await response.json()
+
+            if (!response.ok) {
+                throw new Error(result.details || "Validation Failed")
+            }
+
+            if (result.error) {
+                toast.error(result.error)
+                setImgSrc(null) // Reset to retake
+            } else {
+                onScanComplete(result)
+            }
+
+        } catch (error) {
+            console.log("Using Demo Mode (API Failed)", error)
+
+            // DEMO MODE - Simulate AI Analysis with realistic delays
+            setTimeout(() => {
+                toast.info("Demo Mode: Simulating AI Analysis", { description: "Add API Key for real-time results." })
+
+                if (type === "food") {
+                    const demoFoods = [
+                        { name: "Grilled Chicken Salad", calories: 350, protein: "40g", fats: "15g", carbs: "12g" },
+                        { name: "Oatmeal & Berries", calories: 280, protein: "8g", fats: "5g", carbs: "45g" },
+                        { name: "Protein Shake", calories: 180, protein: "25g", fats: "3g", carbs: "8g" }
+                    ]
+                    onScanComplete(demoFoods[Math.floor(Math.random() * demoFoods.length)])
+                } else {
+                    onScanComplete({
+                        posture: "Good",
+                        alignment: "88%",
+                        issues: ["Slight Forward Head", "Uneven Shoulders"],
+                        correction: "Focus on chin tucks and shoulder blade squeezes.",
+                        suggested_workout: "Posture Corrector A"
+                    })
+                }
+            }, 1000)
+        } finally {
+            setIsScanning(false)
+        }
     }
-
     return (
-        <div className="relative w-full max-w-md mx-auto aspect-[3/4] bg-black rounded-3xl overflow-hidden border-4 border-white/10 shadow-2xl">
+        <div className="relative w-full max-w-md mx-auto aspect-[3/4] bg-black rounded-3xl overflow-hidden border-4 border-white/10 shadow-2xl group">
             {!imgSrc ? (
                 <>
                     <Webcam
+                        key={facingMode} // CRITICAL: Forces component remount on camera switch
                         audio={false}
                         ref={webcamRef}
                         screenshotFormat="image/jpeg"
                         className="w-full h-full object-cover"
                         videoConstraints={{ facingMode }}
+                        onUserMediaError={(err) => {
+                            toast.error("Camera access denied. Please allow camera permissions.")
+                        }}
                     />
+
+                    {/* Sci-Fi Grid Overlay */}
+                    <div className="absolute inset-0 pointer-events-none opacity-20">
+                        <div className="w-full h-full bg-[linear-gradient(rgba(16,185,129,0.1)_1px,transparent_1px),linear-gradient(90deg,rgba(16,185,129,0.1)_1px,transparent_1px)] bg-[size:20px_20px]" />
+                    </div>
+
+                    {/* Animated Scanning Reticle */}
+                    <div className="absolute inset-x-8 inset-y-16 border border-primary/20 rounded-2xl pointer-events-none">
+                        {/* Corners */}
+                        <div className="absolute -top-1 -left-1 w-8 h-8 border-t-2 border-l-2 border-primary rounded-tl-lg" />
+                        <div className="absolute -top-1 -right-1 w-8 h-8 border-t-2 border-r-2 border-primary rounded-tr-lg" />
+                        <div className="absolute -bottom-1 -left-1 w-8 h-8 border-b-2 border-l-2 border-primary rounded-bl-lg" />
+                        <div className="absolute -bottom-1 -right-1 w-8 h-8 border-b-2 border-r-2 border-primary rounded-br-lg" />
+
+                        {/* Side Data Decorations */}
+                        <div className="absolute top-1/2 -left-3 w-1 h-12 bg-primary/50 rounded-full -translate-y-1/2" />
+                        <div className="absolute top-1/2 -right-3 w-1 h-12 bg-primary/50 rounded-full -translate-y-1/2" />
+
+                        {/* Moving Laser Line */}
+                        <motion.div
+                            className="absolute top-0 left-0 right-0 h-0.5 bg-primary/80 shadow-[0_0_15px_rgba(16,185,129,0.8)]"
+                            animate={{ top: ["0%", "100%", "0%"] }}
+                            transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
+                        />
+
+                        {/* Top Badge */}
+                        <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-black/80 px-4 py-1 rounded-full border border-primary/30 flex items-center gap-2">
+                            <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
+                            <span className="text-[10px] text-primary font-mono tracking-[0.2em] font-bold">SYSTEM ACTIVE</span>
+                        </div>
+
+                        {/* Random Tech Data (Static for now, can be animated later) */}
+                        <div className="absolute bottom-4 left-4 text-[8px] text-primary/70 font-mono leading-tight">
+                            <p>ISO: 800</p>
+                            <p>EXP: +0.7</p>
+                            <p>F-STOP: 1.8</p>
+                        </div>
+                        <div className="absolute bottom-4 right-4 text-[8px] text-primary/70 font-mono leading-tight text-right">
+                            <p>AI: ON</p>
+                            <p>NET: 5G</p>
+                            <p>LAT: 45ms</p>
+                        </div>
+                    </div>
+
+                    {/* Controls */}
+                    <div className="absolute inset-x-0 bottom-0 p-6 flex justify-center items-center gap-8 bg-gradient-to-t from-black/90 via-black/50 to-transparent pt-20">
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            className="text-white hover:bg-white/10 hover:text-primary transition-colors"
+                            onClick={() => fileInputRef.current?.click()}
+                        >
+                            <Upload className="h-6 w-6" />
+                        </Button>
+
+                        <button
+                            onClick={capture}
+                            className="h-20 w-20 rounded-full border-[3px] border-white/50 flex items-center justify-center bg-white/10 backdrop-blur-md transition-all active:scale-95 hover:border-primary hover:bg-primary/10 group-hover:scale-105"
+                        >
+                            <div className="h-16 w-16 rounded-full bg-white transition-colors group-hover:bg-primary shadow-[0_0_20px_rgba(255,255,255,0.3)]" />
+                        </button>
+
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            className="text-white hover:bg-white/10 hover:text-primary transition-colors"
+                            onClick={toggleCamera}
+                        >
+                            <RefreshCw className={`h-6 w-6 transition-transform duration-500 ${facingMode === "environment" ? "rotate-180" : ""}`} />
+                        </Button>
+                    </div>
 
                     {/* Hidden File Input */}
                     <input
@@ -140,61 +201,27 @@ export function Scanner({ type, onScanComplete }: ScannerProps) {
                         accept="image/*"
                         onChange={handleFileUpload}
                     />
-
-                    <div className="absolute inset-x-0 bottom-0 p-6 flex justify-center items-center gap-8 bg-gradient-to-t from-black/80 to-transparent">
-                        <Button
-                            variant="ghost"
-                            size="icon"
-                            className="text-white hover:bg-white/10"
-                            onClick={() => fileInputRef.current?.click()}
-                        >
-                            <Upload className="h-6 w-6" />
-                        </Button>
-                        <button
-                            onClick={capture}
-                            className="h-16 w-16 rounded-full border-4 border-white flex items-center justify-center bg-white/20 backdrop-blur-sm transition-transform active:scale-95"
-                        >
-                            <div className="h-12 w-12 rounded-full bg-white" />
-                        </button>
-                        <Button
-                            variant="ghost"
-                            size="icon"
-                            className="text-white hover:bg-white/10"
-                            onClick={toggleCamera}
-                        >
-                            <RefreshCw className={`h-6 w-6 transition-transform ${facingMode === "environment" ? "rotate-180" : ""}`} />
-                        </Button>
-                    </div>
-                    {/* Overlay Guide */}
-                    <div className="absolute inset-0 border-[30px] border-black/30 pointer-events-none rounded-3xl">
-                        <div className="w-full h-full border-2 border-white/30 rounded-xl relative">
-                            <div className="absolute top-0 left-0 w-8 h-8 border-t-4 border-l-4 border-primary rounded-tl-xl" />
-                            <div className="absolute top-0 right-0 w-8 h-8 border-t-4 border-r-4 border-primary rounded-tr-xl" />
-                            <div className="absolute bottom-0 left-0 w-8 h-8 border-b-4 border-l-4 border-primary rounded-bl-xl" />
-                            <div className="absolute bottom-0 right-0 w-8 h-8 border-b-4 border-r-4 border-primary rounded-br-xl" />
-                        </div>
-                    </div>
                 </>
             ) : (
                 <div className="relative w-full h-full">
                     <img src={imgSrc} alt="captured" className="w-full h-full object-cover" />
 
                     {isScanning && (
-                        <div className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center text-white backdrop-blur-sm z-10">
+                        <div className="absolute inset-0 bg-black/80 flex flex-col items-center justify-center text-white backdrop-blur-sm z-10 font-mono">
                             <motion.div
-                                animate={{ y: [-20, 20, -20] }}
+                                animate={{ rotate: 360 }}
                                 transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
-                                className="w-full h-1 bg-primary shadow-[0_0_15px_#22c55e] absolute top-1/2"
-                            />
-                            <ScanLine className="h-12 w-12 text-primary mb-4 animate-pulse" />
-                            <p className="font-medium tracking-widest uppercase text-sm">Analyzing...</p>
+                            >
+                                <Loader2 className="h-12 w-12 text-primary mb-4" />
+                            </motion.div>
+                            <p className="tracking-[0.2em] text-primary animate-pulse text-sm">PROCESSING NEURAL DATA...</p>
                         </div>
                     )}
 
                     {!isScanning && (
                         <div className="absolute top-4 right-4 z-20">
-                            <Button onClick={retake} size="icon" variant="destructive" className="rounded-full h-8 w-8">
-                                <X className="h-4 w-4" />
+                            <Button onClick={retake} size="icon" variant="destructive" className="rounded-full h-10 w-10 shadow-lg border-2 border-white/20">
+                                <X className="h-5 w-5" />
                             </Button>
                         </div>
                     )}

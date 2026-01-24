@@ -15,8 +15,8 @@ export function MobileNav() {
         { href: "/dashboard", icon: Home, label: "Home" },
         { href: "/dashboard/scan", icon: Scan, label: "AI Scan" },
         { type: "trigger", icon: Grid, label: "Menu" }, // Trigger for full menu
-        { href: "/dashboard/coach", icon: Sparkles, label: "Coach" },
-        { href: "/profile", icon: User, label: "Profile" },
+        { href: "/dashboard/diet", icon: ChefHat, label: "AI Cook" },
+        { href: "/dashboard/profile", icon: User, label: "Profile" },
     ]
 
     const allFeatures = [
@@ -49,9 +49,9 @@ export function MobileNav() {
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0, y: "100%" }}
                         transition={{ type: "spring", damping: 25, stiffness: 200 }}
-                        className="fixed inset-0 z-40 bg-black/95 backdrop-blur-3xl pt-16 pb-24 px-6 overflow-y-auto"
+                        className="fixed inset-0 z-40 bg-black/95 backdrop-blur-3xl pt-safe-top pb-24 px-6 overflow-y-auto"
                     >
-                        <div className="flex items-center justify-between mb-8">
+                        <div className="flex items-center justify-between mb-8 mt-4">
                             <h2 className="text-2xl font-bold text-white tracking-tight">All Features</h2>
                             <button
                                 onClick={() => setIsOpen(false)}
@@ -88,8 +88,8 @@ export function MobileNav() {
 
             <div className="fixed bottom-0 left-0 right-0 z-50 md:hidden pointer-events-none transform-gpu translate-z-0">
                 {/* Float above safe area */}
-                <div className="glass pointer-events-auto border-t border-white/10 bg-black/80 backdrop-blur-xl pb-safe-bottom">
-                    <div className="flex justify-around items-center h-16 px-2">
+                <div className="glass pointer-events-auto border-t border-primary/20 bg-black/60 backdrop-blur-xl pb-safe-bottom shadow-[0_-5px_20px_rgba(0,0,0,0.5)]">
+                    <div className="grid grid-cols-5 h-[64px] items-center">
                         {mainLinks.map((link) => {
                             const Icon = link.icon
                             // If it's the menu trigger, check if menu is open. If standard link, check pathname.
@@ -106,12 +106,12 @@ export function MobileNav() {
                                         )}
                                     >
                                         <div className={cn(
-                                            "p-1.5 rounded-xl transition-colors duration-200",
-                                            isActive && "bg-primary/20 shadow-[0_0_15px_-3px_rgba(255,255,255,0.3)]"
+                                            "p-2 rounded-full transition-all duration-200",
+                                            isActive ? "bg-primary/20 shadow-[0_0_15px_-3px_rgba(255,255,255,0.3)] scale-110" : "bg-white/5"
                                         )}>
                                             {isOpen ? <X className="h-5 w-5 fill-current" /> : <Grid className="h-5 w-5 fill-current" />}
                                         </div>
-                                        <span className="text-[10px] font-medium">{isOpen ? "Close" : "Menu"}</span>
+                                        {/* Label hidden for trigger or kept minimal */}
                                     </button>
                                 )
                             }
@@ -126,13 +126,11 @@ export function MobileNav() {
                                         isActive ? "text-primary" : "text-muted-foreground hover:text-white"
                                     )}
                                 >
-                                    <div className={cn(
-                                        "p-1.5 rounded-xl transition-colors duration-200",
-                                        isActive && "bg-primary/20 shadow-[0_0_15px_-3px_rgba(255,255,255,0.3)]"
-                                    )}>
-                                        <Icon className={cn("h-5 w-5", isActive && "fill-current")} />
-                                    </div>
-                                    <span className="text-[10px] font-medium">{link.label}</span>
+                                    <Icon className={cn("h-6 w-6 transition-all", isActive && "fill-current scale-110")} />
+                                    <span className={cn(
+                                        "text-[10px] font-medium transition-opacity",
+                                        isActive ? "opacity-100" : "opacity-70"
+                                    )}>{link.label}</span>
                                 </Link>
                             )
                         })}

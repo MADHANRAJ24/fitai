@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button"
 import { Progress } from "@/components/ui/progress"
 import { toast } from "sonner"
+import { ActivityService } from "@/services/activity-service"
 
 interface EgoLog {
     id: number
@@ -69,6 +70,10 @@ export default function EgoPage() {
         localStorage.setItem(STREAK_KEY, JSON.stringify({ streak: newStreak, lastDate: date }))
     }
 
+
+
+    // ... existing code ...
+
     const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0]
         if (!file) return
@@ -100,12 +105,24 @@ export default function EgoPage() {
                 date: today
             }
 
-            const newLogs = [newLog, ...logs]
+            // CRITICAL LOGIC FIX:
+            // Limit to last 3 photos to prevent LocalStorage crash (Quota Exceeded)
+            // Professional apps should use Cloud Storage, but for Local Logic, we must cap this.
+            const newLogs = [newLog, ...logs].slice(0, 3)
+
             setLogs(newLogs)
             setStreak(newStreak)
             setLastLogDate(today)
             setShowWarning(false)
             saveData(newLogs, newStreak, today)
+
+            // Log to Activity Feed
+            ActivityService.saveActivity({
+                type: 'Progress',
+                title: 'Ego Chamber Log',
+                details: `Day ${newStreak} Streak`,
+                calories: 0
+            })
 
             toast.success(`Day ${newStreak} logged! 🔥`)
         }
@@ -136,59 +153,13 @@ export default function EgoPage() {
 
     return (
         <div className={`space-y-8 h-[calc(100vh-8rem)] overflow-y-auto pr-2 custom-scrollbar transition-all ${beastMode ? "animate-pulse" : ""}`}>
-            {/* Beast Mode Overlay */}
-            <AnimatePresence>
-                {beastMode && (
-                    <motion.div
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
-                        className="fixed inset-0 bg-orange-500/20 pointer-events-none z-50"
-                    >
-                        <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_0%,rgba(0,0,0,0.8)_100%)]" />
-                    </motion.div>
-                )}
-            </AnimatePresence>
-
-            {/* Strict Mode Warning */}
-            <AnimatePresence>
-                {showWarning && (
-                    <motion.div
-                        initial={{ opacity: 0, y: -20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, height: 0 }}
-                        className="bg-red-500/10 border border-red-500/50 rounded-xl p-4 flex items-start gap-4 relative overflow-hidden"
-                    >
-                        <div className="absolute inset-0 bg-red-500/5 animate-pulse" />
-                        <div className="p-2 bg-red-500/20 rounded-lg z-10">
-                            <AlertTriangle className="h-6 w-6 text-red-500" />
-                        </div>
-                        <div className="z-10 flex-1">
-                            <h3 className="font-bold text-red-500">EGO ACTIVATION REQUIRED</h3>
-                            <p className="text-sm text-red-400/80 mt-1">
-                                You haven&apos;t logged your physique today. Your past self is laughing at you.
-                                Upload now to maintain the standard.
-                            </p>
-                        </div>
-                        <Button
-                            variant="destructive"
-                            size="sm"
-                            className="z-10"
-                            onClick={() => fileInputRef.current?.click()}
-                        >
-                            Upload Proof
-                        </Button>
-                    </motion.div>
-                )}
-            </AnimatePresence>
-
             <div className="flex items-center justify-between">
                 <div>
                     <h2 className="text-3xl font-bold tracking-tight text-white flex items-center gap-2">
-                        <Flame className={`h-8 w-8 ${beastMode ? "text-red-500 animate-bounce" : "text-orange-500"}`} />
-                        Ego Chamber
+                        <Flame className={`h-8 w-8 ${beastMode ? "text-orange-500 animate-bounce" : "text-primary"}`} />
+                        Progress Tracker
                     </h2>
-                    <p className="text-muted-foreground">Visual proof of your evolution. No excuses.</p>
+                    <p className="text-muted-foreground">Visual proof of your evolution. Consistency is key.</p>
                 </div>
                 <div className="flex items-center gap-4">
                     <motion.div
@@ -200,7 +171,7 @@ export default function EgoPage() {
                             <Flame className={`h-5 w-5 ${streak >= 7 ? "text-orange-500" : "text-muted-foreground"}`} />
                             {streak} <span className="text-sm font-normal text-muted-foreground">DAYS</span>
                         </div>
-                        <div className="text-xs text-orange-500 font-bold uppercase tracking-wider">Current Streak</div>
+                        <div className="text-xs text-primary font-bold uppercase tracking-wider">Current Streak</div>
                     </motion.div>
                 </div>
             </div>

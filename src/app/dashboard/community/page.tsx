@@ -1,5 +1,6 @@
 "use client"
 
+import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Trophy, Medal, Flame, TrendingUp, Users, Award, Star, Share2 } from "lucide-react"
@@ -8,14 +9,25 @@ import { SocialFeed } from "@/components/features/social-feed"
 import { motion } from "framer-motion"
 import { toast } from "sonner"
 
+
 export default function CommunityPage() {
+    const [userXP, setUserXP] = useState(0)
+
+
+    useEffect(() => {
+        import("@/services/workout-service").then(async m => {
+            const workouts = await m.WorkoutService.getRecentWorkouts()
+            setUserXP(workouts.length * 100)
+        })
+    }, [])
+
     const leaderboard = [
         { rank: 1, name: "Sarah Connor", xp: 12500, streak: 45, avatar: "SC" },
         { rank: 2, name: "John Wick", xp: 11200, streak: 32, avatar: "JW" },
-        { rank: 3, name: "You", xp: 8900, streak: 12, avatar: "ME", isMe: true },
+        { rank: 3, name: "You", xp: userXP || 8900, streak: 12, avatar: "ME", isMe: true }, // Fallback to 8900 if 0
         { rank: 4, name: "Bruce Wayne", xp: 8750, streak: 21, avatar: "BW" },
         { rank: 5, name: "Diana Prince", xp: 8200, streak: 8, avatar: "DP" },
-    ]
+    ].sort((a, b) => b.xp - a.xp).map((item, index) => ({ ...item, rank: index + 1 }))
 
     const handleInvite = async () => {
         const inviteData = {

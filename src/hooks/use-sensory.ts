@@ -6,8 +6,22 @@ type FeedbackType = "click" | "success" | "error" | "feature"
 
 export const useSensory = () => {
     const triggerFeedback = useCallback((type: FeedbackType = "click") => {
+        // Check User Settings (Default to enabled)
+        let hapticsEnabled = true
+        let soundEnabled = true
+
+        if (typeof window !== "undefined") {
+            try {
+                const settings = JSON.parse(localStorage.getItem("fitai_settings") || "{}")
+                if (settings.hapticsEnabled === false) hapticsEnabled = false
+                if (settings.soundEnabled === false) soundEnabled = false
+            } catch (e) {
+                // Keep defaults
+            }
+        }
+
         // Haptic Feedback (Mobile Only)
-        if (typeof navigator !== "undefined" && navigator.vibrate) {
+        if (hapticsEnabled && typeof navigator !== "undefined" && navigator.vibrate) {
             switch (type) {
                 case "click":
                     navigator.vibrate(10) // Short, sharp tap
@@ -25,7 +39,7 @@ export const useSensory = () => {
         }
 
         // Audio Feedback (Web Audio API - Synthesized)
-        if (typeof window !== "undefined" && window.AudioContext) {
+        if (soundEnabled && typeof window !== "undefined" && window.AudioContext) {
             try {
                 const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)()
                 const oscillator = audioCtx.createOscillator()

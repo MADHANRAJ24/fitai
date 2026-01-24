@@ -45,7 +45,7 @@ export function RazorpayModal({
         }
 
         // 1. Create Order
-        const orderRes = await fetch("/api/create-razorpay-order", {
+        const orderRes = await fetch("https://fitai-virid.vercel.app/api/create-razorpay-order", {
             method: "POST",
             body: JSON.stringify({
                 amount: parseFloat(price.replace("$", "")), // Clean price string

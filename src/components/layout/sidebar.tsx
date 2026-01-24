@@ -105,7 +105,7 @@ export function Sidebar({ className }: SidebarProps) {
             color: "text-orange-600",
         },
         {
-            label: "Body Profile",
+            label: "Profile",
             icon: Activity,
             href: "/dashboard/profile",
             color: "text-teal-500",
@@ -124,13 +124,13 @@ export function Sidebar({ className }: SidebarProps) {
     ]
 
     return (
-        <div className="w-64 border-r border-white/10 bg-black/40 backdrop-blur-xl h-screen flex flex-col fixed left-0 top-0">
+        <div className="w-64 glass-panel h-screen flex flex-col fixed left-0 top-0">
             <div className="p-6">
-                <div className="flex items-center gap-2 font-bold text-xl text-white">
-                    <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center">
-                        <Dumbbell className="h-5 w-5 text-black" />
+                <div className="flex items-center gap-2 font-bold text-xl text-white tracking-widest uppercase font-heading">
+                    <div className="h-8 w-8 rounded-lg bg-primary/20 border border-primary/50 flex items-center justify-center shadow-[0_0_15px_rgba(16,185,129,0.3)]">
+                        <Dumbbell className="h-5 w-5 text-primary" />
                     </div>
-                    FitAI
+                    <span className="text-transparent bg-clip-text bg-gradient-to-r from-white to-white/50">FitAI</span>
                 </div>
             </div>
 
@@ -140,13 +140,18 @@ export function Sidebar({ className }: SidebarProps) {
                         key={route.href}
                         href={route.href}
                         className={cn(
-                            "text-sm group flex p-3 w-full justify-start font-medium cursor-pointer hover:text-white hover:bg-white/10 rounded-lg transition",
-                            pathname === route.href ? "text-white bg-white/10" : "text-zinc-400"
+                            "text-sm group flex p-3 w-full justify-start font-medium cursor-pointer rounded-xl transition-all duration-300 relative overflow-hidden",
+                            pathname === route.href
+                                ? "text-white bg-primary/10 border border-primary/20 shadow-[0_0_20px_rgba(16,185,129,0.1)]"
+                                : "text-zinc-400 hover:text-white hover:bg-white/5 hover:border-white/10 border border-transparent"
                         )}
                     >
-                        <div className="flex items-center flex-1">
-                            <route.icon className={cn("h-5 w-5 mr-3", route.color)} />
-                            {route.label}
+                        {pathname === route.href && (
+                            <div className="absolute left-0 top-0 bottom-0 w-1 bg-primary shadow-[0_0_10px_#10b981]" />
+                        )}
+                        <div className="flex items-center flex-1 relative z-10">
+                            <route.icon className={cn("h-5 w-5 mr-3 transition-colors", pathname === route.href ? "text-primary" : "group-hover:text-white", route.color)} />
+                            <span className={pathname === route.href ? "text-shadow-sm font-semibold" : ""}>{route.label}</span>
                         </div>
                     </Link>
                 ))}
@@ -154,7 +159,7 @@ export function Sidebar({ className }: SidebarProps) {
             <div className="p-3 w-full pb-safe-bottom">
                 <Button
                     variant="ghost"
-                    className="w-full justify-start text-muted-foreground hover:text-red-500 hover:bg-red-500/10"
+                    className="w-full justify-start text-muted-foreground hover:text-red-500 hover:bg-red-500/10 hover:border-red-500/20 border border-transparent rounded-xl"
                     onClick={() => signOut()}
                 >
                     <LogOut className="mr-2 h-4 w-4" />

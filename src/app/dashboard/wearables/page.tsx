@@ -2,224 +2,220 @@
 
 import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
-import { Activity, Heart, Moon, Watch, Smartphone, RefreshCw, CheckCircle2 } from "lucide-react"
+import { Activity, Heart, Moon, Watch, Smartphone, RefreshCw, CheckCircle2, Bluetooth, Search, Wifi } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { motion, AnimatePresence } from "framer-motion"
 import { toast } from "sonner"
 import { healthService, type HealthMetrics } from "@/services/health-service"
 
 export default function WearablesPage() {
-    const [isSyncing, setIsSyncing] = useState(false)
-    const [connectingId, setConnectingId] = useState<string | null>(null)
-    const [connectedDevices, setConnectedDevices] = useState({
-        apple: true,
-        google: false
-    })
+    const [isScanning, setIsScanning] = useState(false)
+    const [foundDevices, setFoundDevices] = useState<any[]>([])
+    const [connectedDevice, setConnectedDevice] = useState<string | null>(null)
     const [metrics, setMetrics] = useState<HealthMetrics | null>(null)
 
-    // Initial Fetch (Simulated)
+    // Load connection state
     useEffect(() => {
-        if (connectedDevices.apple || connectedDevices.google) {
-            fetchMetrics()
+        const stored = localStorage.getItem('connected_device_id')
+        if (stored) {
+            setConnectedDevice(stored)
+            fetchMetrics(stored)
         }
-    }, [connectedDevices])
+    }, [])
 
-    const fetchMetrics = async () => {
-        setIsSyncing(true)
-        try {
-            const data = await healthService.getDailyMetrics(connectedDevices.apple ? 'apple' : 'google')
-            setMetrics(data)
-        } catch (error) {
-            console.error(error)
-        } finally {
-            setTimeout(() => setIsSyncing(false), 800)
-        }
-    }
+    const startScan = () => {
+        setIsScanning(true)
+        setFoundDevices([])
 
-    const handleSync = () => {
-        fetchMetrics()
-    }
-
-    const handleConnect = (id: 'apple' | 'google') => {
-        setConnectingId(id)
+        // Simulate finding devices over time
         setTimeout(() => {
-            setConnectedDevices(prev => ({ ...prev, [id]: true }))
-            setConnectingId(null)
-            toast.success(`${id === 'apple' ? 'Apple Watch' : 'Google Fit'} Connected Successfully!`)
+            setFoundDevices(prev => [...prev, { id: 'apple', name: 'Apple Watch Ultra', type: 'watch', signal: 98 }])
+        }, 1500)
+
+        setTimeout(() => {
+            setFoundDevices(prev => [...prev, { id: 'samsung', name: 'Galaxy Watch 6', type: 'watch', signal: 85 }])
+        }, 3000)
+
+        setTimeout(() => {
+            setFoundDevices(prev => [...prev, { id: 'garmin', name: 'Garmin Fenix 7', type: 'watch', signal: 70 }])
+            setIsScanning(false)
+        }, 4500)
+    }
+
+    const connectDevice = (device: any) => {
+        toast.loading(`Pairing with ${device.name}...`)
+        setTimeout(() => {
+            setConnectedDevice(device.id)
+            localStorage.setItem('connected_device_id', device.id)
+            toast.dismiss()
+            toast.success(`Connected to ${device.name}`)
+            fetchMetrics(device.id)
         }, 2000)
     }
 
-    const handleDisconnect = (id: 'apple' | 'google') => {
-        setConnectedDevices(prev => ({ ...prev, [id]: false }))
-        toast.info(`${id === 'apple' ? 'Apple Watch' : 'Google Fit'} Disconnected`)
+    const disconnect = () => {
+        setConnectedDevice(null)
+        localStorage.removeItem('connected_device_id')
+        setMetrics(null)
+        setFoundDevices([])
+        toast.info("Device disconnected")
+    }
+
+    const fetchMetrics = async (deviceId: string) => {
+        const data = await healthService.getDailyMetrics(deviceId === 'apple' ? 'apple' : 'google')
+        setMetrics(data)
     }
 
     return (
-        <div className="space-y-8 h-[calc(100vh-8rem)] overflow-y-auto pr-2 custom-scrollbar">
+        <div className="space-y-6 h-[calc(100vh-8rem)] overflow-y-auto pr-2 custom-scrollbar">
             <div className="flex items-center justify-between">
-                <motion.div
-                    initial={{ opacity: 0, x: -20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                >
+                <div>
                     <h2 className="text-3xl font-bold tracking-tight text-white flex items-center gap-2">
-                        <Watch className="h-8 w-8 text-primary" />
-                        Device Sync
+                        <Bluetooth className="h-8 w-8 text-blue-500" />
+                        Device Connectivity
                     </h2>
-                    <p className="text-muted-foreground">Connect your wearables for deeper insights.</p>
-                </motion.div>
-                <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-                    <Button
-                        variant="outline"
-                        className={`gap-2 ${isSyncing ? "text-primary border-primary/50 bg-primary/10" : ""}`}
-                        onClick={handleSync}
-                        disabled={isSyncing}
-                    >
-                        <RefreshCw className={`h-4 w-4 ${isSyncing ? "animate-spin" : ""}`} />
-                        {isSyncing ? "Syncing..." : "Sync Now"}
-                    </Button>
-                </motion.div>
+                    <p className="text-muted-foreground">Scan and pair bluetooth wearables.</p>
+                </div>
             </div>
 
+            {/* Radar / Connection Status */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {/* Connected Devices */}
+                <Card className="glass border-white/5 relative overflow-hidden min-h-[400px]">
+                    <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 to-transparent pointer-events-none" />
+                    <CardHeader>
+                        <CardTitle>Bluetooth Scanner</CardTitle>
+                        <CardDescription>
+                            {connectedDevice ? "Device Paired & Active" : "Search for nearby fitness devices"}
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent className="flex flex-col items-center justify-center py-8">
+
+                        {connectedDevice ? (
+                            <motion.div
+                                initial={{ scale: 0.8, opacity: 0 }}
+                                animate={{ scale: 1, opacity: 1 }}
+                                className="flex flex-col items-center gap-6"
+                            >
+                                <div className="h-40 w-40 rounded-full bg-green-500/20 border-4 border-green-500 flex items-center justify-center relative">
+                                    <div className="absolute inset-0 rounded-full border border-green-500 animate-ping opacity-20" />
+                                    <Watch className="h-20 w-20 text-green-500" />
+                                    <div className="absolute top-2 right-4 bg-green-500 text-black textxs font-bold px-2 py-0.5 rounded-full">LIVE</div>
+                                </div>
+                                <div className="text-center">
+                                    <h3 className="text-2xl font-bold text-white">Apple Watch Ultra</h3>
+                                    <p className="text-green-400 font-mono flex items-center justify-center gap-2 mt-2">
+                                        <Wifi className="h-4 w-4" /> Signal Strong
+                                    </p>
+                                </div>
+                                <Button variant="destructive" onClick={disconnect} className="mt-4">
+                                    Disconnect Device
+                                </Button>
+                            </motion.div>
+                        ) : (
+                            <>
+                                {/* Radar Animation */}
+                                <div className="relative h-64 w-64 mb-8">
+                                    <div className="absolute inset-0 rounded-full border border-white/10" />
+                                    <div className="absolute inset-12 rounded-full border border-white/10" />
+                                    <div className="absolute inset-24 rounded-full border border-white/10" />
+
+                                    {isScanning && (
+                                        <motion.div
+                                            className="absolute inset-0 bg-gradient-to-r from-transparent via-blue-500/20 to-transparent rounded-full"
+                                            animate={{ rotate: 360 }}
+                                            transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
+                                            style={{ clipPath: "polygon(50% 50%, 100% 0, 100% 50%, 50% 50%)" }}
+                                        />
+                                    )}
+
+                                    <div className="absolute inset-0 flex items-center justify-center">
+                                        <Button
+                                            size="lg"
+                                            className={`rounded-full h-20 w-20 ${isScanning ? "bg-red-500 hover:bg-red-600" : "bg-blue-600 hover:bg-blue-700"}`}
+                                            onClick={() => isScanning ? setIsScanning(false) : startScan()}
+                                        >
+                                            {isScanning ? <Search className="h-8 w-8 animate-pulse" /> : <Bluetooth className="h-8 w-8" />}
+                                        </Button>
+                                    </div>
+
+                                    {/* Found Devices Popups */}
+                                    <AnimatePresence>
+                                        {foundDevices.map((device, i) => (
+                                            <motion.button
+                                                key={device.id}
+                                                initial={{ scale: 0, opacity: 0 }}
+                                                animate={{
+                                                    scale: 1,
+                                                    opacity: 1,
+                                                    x: Math.cos(i * 2) * 100, // Scatter around circle
+                                                    y: Math.sin(i * 2) * 100
+                                                }}
+                                                className="absolute inset-0 m-auto h-12 w-auto px-4 bg-gray-900 border border-white/20 rounded-full flex items-center gap-2 shadow-xl hover:bg-gray-800 z-10 whitespace-nowrap"
+                                                onClick={() => connectDevice(device)}
+                                            >
+                                                <Watch className="h-4 w-4 text-blue-400" />
+                                                <span className="text-xs font-bold text-white">{device.name}</span>
+                                            </motion.button>
+                                        ))}
+                                    </AnimatePresence>
+                                </div>
+                                <p className="text-muted-foreground animate-pulse">
+                                    {isScanning ? "Scanning for nearby devices..." : "Tap to start scanning"}
+                                </p>
+                            </>
+                        )}
+                    </CardContent>
+                </Card>
+
+                {/* Metrics */}
                 <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.1 }}
+                    initial={{ opacity: 0, x: 20 }}
+                    animate={{ opacity: 1, x: 0 }}
                 >
                     <Card className="glass border-white/5 h-full">
                         <CardHeader>
-                            <CardTitle>Connected Devices</CardTitle>
-                            <CardDescription>Your active data sources.</CardDescription>
+                            <CardTitle>Real-time Telemetry</CardTitle>
                         </CardHeader>
-                        <CardContent className="space-y-4">
-                            {/* Apple Watch */}
-                            <motion.div
-                                whileHover={{ scale: 1.02 }}
-                                className={`flex items-center justify-between p-4 rounded-xl border transition-colors ${connectedDevices.apple ? "bg-white/5 border-white/10 hover:border-white/20" : "bg-white/5 border-white/10 opacity-50 grayscale hover:grayscale-0 hover:opacity-100"}`}
-                            >
-                                <div className="flex items-center gap-4">
-                                    <div className="h-12 w-12 rounded-full bg-black flex items-center justify-center border border-white/10">
-                                        <Watch className="h-6 w-6 text-white" />
-                                    </div>
-                                    <div>
-                                        <div className="font-bold text-white">Apple Watch Ultra</div>
-                                        {connectedDevices.apple ? (
-                                            <div className="text-xs text-green-400 flex items-center gap-1 font-mono mt-1">
-                                                <div className="h-1.5 w-1.5 rounded-full bg-green-400 animate-pulse" />
-                                                CONNECTED
+                        <CardContent className="grid gap-4">
+                            {!connectedDevice ? (
+                                <div className="h-full flex flex-col items-center justify-center text-muted-foreground opacity-50">
+                                    <Bluetooth className="h-16 w-16 mb-4" />
+                                    <p>Connect a device to view live telemetry</p>
+                                </div>
+                            ) : (
+                                <>
+                                    <div className="p-4 rounded-xl bg-red-500/10 border border-red-500/20 flex items-center justify-between">
+                                        <div className="flex items-center gap-4">
+                                            <div className="p-3 bg-red-500 rounded-full text-black"><Heart className="h-6 w-6" /></div>
+                                            <div>
+                                                <p className="text-sm text-red-400 font-bold uppercase">Heart Rate</p>
+                                                <p className="text-2xl font-bold text-white">{metrics?.heartRate || 72} bpm</p>
                                             </div>
-                                        ) : (
-                                            <div className="text-xs text-muted-foreground mt-1">Not connected</div>
-                                        )}
+                                        </div>
+                                        <Activity className="h-12 w-12 text-red-500/20 animate-pulse" />
                                     </div>
-                                </div>
-                                {connectedDevices.apple ? (
-                                    <Button variant="ghost" size="sm" onClick={() => handleDisconnect('apple')} className="text-muted-foreground hover:text-red-400">Disconnect</Button>
-                                ) : (
-                                    <Button
-                                        variant="outline"
-                                        size="sm"
-                                        onClick={() => handleConnect('apple')}
-                                        disabled={connectingId === 'apple'}
-                                    >
-                                        {connectingId === 'apple' ? <RefreshCw className="h-3 w-3 animate-spin mr-2" /> : "Connect"}
-                                        {connectingId === 'apple' ? "Linking..." : ""}
-                                    </Button>
-                                )}
-                            </motion.div>
 
-                            {/* Google Fit */}
-                            <motion.div
-                                whileHover={{ scale: 1.02 }}
-                                className={`flex items-center justify-between p-4 rounded-xl border transition-colors ${connectedDevices.google ? "bg-white/5 border-white/10 hover:border-white/20" : "bg-white/5 border-white/10 opacity-50 grayscale hover:grayscale-0 hover:opacity-100"}`}
-                            >
-                                <div className="flex items-center gap-4">
-                                    <div className="h-12 w-12 rounded-full bg-black flex items-center justify-center border border-white/10">
-                                        <Smartphone className="h-6 w-6 text-white" />
-                                    </div>
-                                    <div>
-                                        <div className="font-bold text-white">Google Fit</div>
-                                        {connectedDevices.google ? (
-                                            <div className="text-xs text-green-400 flex items-center gap-1 font-mono mt-1">
-                                                <div className="h-1.5 w-1.5 rounded-full bg-green-400 animate-pulse" />
-                                                CONNECTED
+                                    <div className="p-4 rounded-xl bg-orange-500/10 border border-orange-500/20 flex items-center justify-between">
+                                        <div className="flex items-center gap-4">
+                                            <div className="p-3 bg-orange-500 rounded-full text-black"><Activity className="h-6 w-6" /></div>
+                                            <div>
+                                                <p className="text-sm text-orange-400 font-bold uppercase">Active Calories</p>
+                                                <p className="text-2xl font-bold text-white">{metrics?.calories || 450} kcal</p>
                                             </div>
-                                        ) : (
-                                            <div className="text-xs text-muted-foreground mt-1">Not connected</div>
-                                        )}
+                                        </div>
                                     </div>
-                                </div>
-                                {connectedDevices.google ? (
-                                    <Button variant="ghost" size="sm" onClick={() => handleDisconnect('google')} className="text-muted-foreground hover:text-red-400">Disconnect</Button>
-                                ) : (
-                                    <Button
-                                        variant="outline"
-                                        size="sm"
-                                        onClick={() => handleConnect('google')}
-                                        disabled={connectingId === 'google'}
-                                    >
-                                        {connectingId === 'google' ? <RefreshCw className="h-3 w-3 animate-spin mr-2" /> : "Connect"}
-                                        {connectingId === 'google' ? "Linking..." : ""}
-                                    </Button>
-                                )}
-                            </motion.div>
-                        </CardContent>
-                    </Card>
-                </motion.div>
 
-                {/* Live Metrics (Dynamic) */}
-                <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.2 }}
-                >
-                    <Card className="glass border-white/5 h-full relative overflow-hidden">
-                        {isSyncing && (
-                            <motion.div
-                                initial={{ opacity: 0 }}
-                                animate={{ opacity: 1 }}
-                                exit={{ opacity: 0 }}
-                                className="absolute inset-0 bg-black/50 backdrop-blur-sm z-10 flex items-center justify-center"
-                            >
-                                <div className="flex flex-col items-center gap-2">
-                                    <RefreshCw className="h-8 w-8 text-primary animate-spin" />
-                                    <span className="text-sm font-bold text-white">Updating Data...</span>
-                                </div>
-                            </motion.div>
-                        )}
-                        <CardHeader>
-                            <CardTitle className="flex items-center justify-between">
-                                Live Metrics
-                                {isSyncing ? null : <span className="text-xs font-normal text-muted-foreground">Just now</span>}
-                            </CardTitle>
-                            <CardDescription>Data from {connectedDevices.apple ? 'Apple Watch' : (connectedDevices.google ? 'Google Fit' : 'Device Source')}.</CardDescription>
-                        </CardHeader>
-                        <CardContent className="grid grid-cols-2 gap-4">
-                            <motion.div
-                                whileHover={{ scale: 1.05 }}
-                                className="p-4 rounded-xl bg-red-500/10 border border-red-500/20 flex flex-col items-center justify-center text-center py-6"
-                            >
-                                <Heart className="h-8 w-8 text-red-500 mb-2 animate-pulse" />
-                                <div className="text-3xl font-bold text-white">{metrics?.heartRate || "--"} <span className="text-sm font-normal text-muted-foreground">bpm</span></div>
-                                <div className="text-xs text-red-400 mt-1 font-bold uppercase">Resting HR</div>
-                            </motion.div>
-                            <motion.div
-                                whileHover={{ scale: 1.05 }}
-                                className="p-4 rounded-xl bg-indigo-500/10 border border-indigo-500/20 flex flex-col items-center justify-center text-center py-6"
-                            >
-                                <Moon className="h-8 w-8 text-indigo-500 mb-2" />
-                                <div className="text-3xl font-bold text-white">{metrics ? Math.floor(metrics.sleepMinutes / 60) + 'h ' + (metrics.sleepMinutes % 60) + 'm' : "--"}</div>
-                                <div className="text-xs text-indigo-400 mt-1 font-bold uppercase">Sleep Score: {metrics ? (metrics.sleepMinutes > 420 ? 92 : 75) : "--"}</div>
-                            </motion.div>
-                            <motion.div
-                                whileHover={{ scale: 1.05 }}
-                                className="p-4 rounded-xl bg-orange-500/10 border border-orange-500/20 flex flex-col items-center justify-center text-center col-span-2 py-6"
-                            >
-                                <Activity className="h-8 w-8 text-orange-500 mb-2" />
-                                <div className="text-4xl font-bold text-white">{metrics?.calories.toLocaleString() || "--"} <span className="text-sm font-normal text-muted-foreground">kcals</span></div>
-                                <div className="text-xs text-orange-400 mt-1 font-bold uppercase">Total Active Energy</div>
-                            </motion.div>
+                                    <div className="p-4 rounded-xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-between">
+                                        <div className="flex items-center gap-4">
+                                            <div className="p-3 bg-indigo-500 rounded-full text-black"><Moon className="h-6 w-6" /></div>
+                                            <div>
+                                                <p className="text-sm text-indigo-400 font-bold uppercase">Sleep Data</p>
+                                                <p className="text-2xl font-bold text-white">7h 45m</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </>
+                            )}
                         </CardContent>
                     </Card>
                 </motion.div>

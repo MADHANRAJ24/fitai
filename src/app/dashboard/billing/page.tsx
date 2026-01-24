@@ -171,77 +171,101 @@ export default function BillingPage() {
     }
 
     return (
-        <div className="space-y-8 h-[calc(100vh-8rem)] overflow-y-auto pr-2 custom-scrollbar">
-            <div className="text-center">
+        <div className="space-y-12 h-[calc(100vh-8rem)] overflow-y-auto pr-4 no-scrollbar pb-10 relative">
+            {/* Background Atmosphere */}
+            <div className="fixed inset-0 pointer-events-none -z-10">
+                <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-primary/5 rounded-full blur-[120px]" />
+            </div>
+
+            <div className="text-center relative">
                 <motion.div
-                    initial={{ opacity: 0, y: -20 }}
-                    animate={{ opacity: 1, y: 0 }}
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    animate={{ opacity: 1, scale: 1 }}
                 >
-                    <h2 className="text-3xl md:text-4xl font-bold tracking-tight text-white flex items-center justify-center gap-3">
-                        <CreditCard className="h-8 w-8 text-primary" />
-                        Choose Your Plan
+                    <div className="inline-flex items-center gap-3 px-6 py-2 rounded-full bg-primary/10 border border-primary/20 mb-6 font-mono text-[10px] uppercase tracking-[0.4em] font-black text-primary">
+                        Secure Transaction Portal
+                    </div>
+                    <h2 className="text-5xl font-black tracking-tighter text-white flex items-center justify-center gap-4 uppercase font-heading">
+                        <CreditCard className="h-10 w-10 text-primary" />
+                        Resource Procurement
                     </h2>
-                    <p className="text-muted-foreground mt-2 max-w-md mx-auto">
-                        Unlock premium features to accelerate your fitness journey
+                    <p className="text-muted-foreground mt-4 max-w-lg mx-auto font-medium leading-relaxed">
+                        Authorize operational upgrades to maximize biometric potential and unlock advanced neural protocols.
                     </p>
                 </motion.div>
             </div>
 
-            {/* Current Plan Badge */}
+            {/* Current Status HUD */}
             <div className="flex justify-center">
-                <Badge variant="outline" className="text-sm px-4 py-2 gap-2">
-                    <Shield className="h-4 w-4" />
-                    Current Plan: <span className="font-bold text-primary capitalize">{currentPlan}</span>
-                </Badge>
+                <motion.div
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="glass flex items-center gap-4 px-8 py-4 rounded-3xl border border-white/10 shadow-2xl relative overflow-hidden group"
+                >
+                    <div className="absolute inset-0 bg-primary/5 animate-pulse-slow opacity-0 group-hover:opacity-100 transition-opacity" />
+                    <Shield className="h-5 w-5 text-primary" />
+                    <div className="flex flex-col">
+                        <span className="text-[8px] font-mono text-muted-foreground uppercase tracking-widest font-black">Authentication Status</span>
+                        <span className="font-heading font-black text-lg text-white uppercase tracking-tighter">Current Plan: <span className="text-primary">{currentPlan}</span></span>
+                    </div>
+                </motion.div>
             </div>
 
             {/* Pricing Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl mx-auto">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto px-4">
                 {PLANS.map((plan, index) => (
                     <motion.div
                         key={plan.id}
-                        initial={{ opacity: 0, y: 20 }}
+                        initial={{ opacity: 0, y: 30 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: index * 0.1 }}
+                        whileHover={{ y: -10 }}
                     >
-                        <Card className={`relative h-full flex flex-col ${plan.bgColor} ${plan.borderColor} border-2 ${plan.popular ? "ring-2 ring-primary ring-offset-2 ring-offset-black" : ""}`}>
+                        <Card className={`relative h-full flex flex-col bg-black/60 backdrop-blur-3xl transition-all duration-500 rounded-[2.5rem] border-2 shadow-2xl overflow-hidden group ${plan.popular ? "border-primary/50 shadow-primary/20" : "border-white/5"}`}>
                             {plan.popular && (
-                                <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-                                    <Badge className="bg-primary text-black font-bold">MOST POPULAR</Badge>
+                                <div className="absolute top-0 right-0 p-4">
+                                    <Badge className="bg-primary text-black font-black text-[9px] px-3 py-1 rounded-xl shadow-2xl animate-pulse">RECOMMENDED_OPS</Badge>
                                 </div>
                             )}
-                            <CardHeader className="text-center pb-2">
-                                <div className={`mx-auto h-12 w-12 rounded-full ${plan.bgColor} flex items-center justify-center mb-2`}>
-                                    <plan.icon className={`h-6 w-6 ${plan.color}`} />
+
+                            {/* HUD Corners */}
+                            <div className={`absolute top-6 left-6 w-8 h-8 border-t-2 border-l-2 transition-colors opacity-30 group-hover:opacity-100 ${plan.popular ? "border-primary" : "border-white/20"}`} />
+                            <div className={`absolute bottom-6 right-6 w-8 h-8 border-b-2 border-r-2 transition-colors opacity-30 group-hover:opacity-100 ${plan.popular ? "border-primary" : "border-white/20"}`} />
+
+                            <CardHeader className="text-center pt-10 pb-6 relative z-10">
+                                <div className={`mx-auto h-16 w-16 rounded-2xl ${plan.bgColor} flex items-center justify-center mb-6 border border-white/5 group-hover:scale-110 transition-transform shadow-inner`}>
+                                    <plan.icon className={`h-8 w-8 ${plan.color}`} />
                                 </div>
-                                <CardTitle className={`text-xl ${plan.color}`}>{plan.name}</CardTitle>
-                                <CardDescription>{plan.description}</CardDescription>
-                                <div className="mt-4">
-                                    <span className="text-4xl font-bold text-white">{plan.price}</span>
-                                    <span className="text-muted-foreground">{plan.period}</span>
+                                <CardTitle className={`text-4xl font-black font-heading uppercase tracking-tighter ${plan.color}`}>{plan.name}</CardTitle>
+                                <CardDescription className="font-mono text-[9px] uppercase tracking-widest font-black text-muted-foreground mt-2 opacity-60 group-hover:opacity-100 transition-opacity">{plan.description}</CardDescription>
+                                <div className="mt-8 flex items-baseline justify-center gap-1">
+                                    <span className="text-5xl font-black text-white tracking-tighter font-heading">{plan.price}</span>
+                                    <span className="text-xs font-mono font-black uppercase tracking-widest text-muted-foreground opacity-40">{plan.period}</span>
                                 </div>
                             </CardHeader>
-                            <CardContent className="flex-1">
-                                <ul className="space-y-3">
+                            <CardContent className="flex-1 px-8 relative z-10">
+                                <ul className="space-y-4">
                                     {plan.features.map((feature, i) => (
-                                        <li key={i} className="flex items-center gap-2 text-sm">
-                                            <Check className={`h-4 w-4 ${plan.color} flex-shrink-0`} />
-                                            <span className="text-white/80">{feature}</span>
+                                        <li key={i} className="flex items-center gap-3 text-sm">
+                                            <div className={`h-5 w-5 rounded-lg flex items-center justify-center ${plan.popular ? "bg-primary/20" : "bg-white/5"}`}>
+                                                <Check className={`h-3 w-3 ${plan.color} stroke-[3px]`} />
+                                            </div>
+                                            <span className="text-white/70 font-bold group-hover:text-white transition-colors">{feature}</span>
                                         </li>
                                     ))}
                                 </ul>
                             </CardContent>
-                            <CardFooter>
+                            <CardFooter className="p-8 relative z-10">
                                 <Button
-                                    className={`w-full ${plan.popular ? "bg-primary text-black hover:bg-primary/90" : ""}`}
-                                    variant={plan.popular ? "default" : "outline"}
+                                    className={`w-full h-16 text-lg font-black rounded-2xl shadow-2xl transition-all uppercase tracking-widest font-heading ${plan.popular ? "bg-primary text-black hover:bg-emerald-400 hover:scale-[1.03]" : "bg-white/[0.03] text-white/50 border-white/5 hover:bg-white/10"}`}
+                                    variant={plan.popular ? "neon" : "outline" as any}
                                     disabled={plan.disabled || loading === plan.id}
                                     onClick={() => handleSubscribe(plan.id, plan.priceId, (plan as any).trialEnabled)}
                                 >
                                     {loading === plan.id ? (
                                         <>
-                                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                                            Processing...
+                                            <Loader2 className="h-5 w-5 mr-3 animate-spin" />
+                                            SYNCING...
                                         </>
                                     ) : (
                                         plan.cta

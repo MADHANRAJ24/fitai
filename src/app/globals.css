@@ -1,77 +1,197 @@
 @import "tailwindcss";
 
 @theme {
-  --color-background: hsl(224 71% 4%);
-  --color-foreground: hsl(213 31% 91%);
+    --color-background: hsl(240 10% 4%);
+    --color-foreground: hsl(0 0% 98%);
 
-  --color-card: hsl(224 71% 4%);
-  --color-card-foreground: hsl(213 31% 91%);
+    --color-card: hsl(240 10% 5%);
+    --color-card-foreground: hsl(0 0% 98%);
 
-  --color-popover: hsl(224 71% 4%);
-  --color-popover-foreground: hsl(213 31% 91%);
+    --color-popover: hsl(240 10% 4%);
+    --color-popover-foreground: hsl(0 0% 98%);
 
-  --color-primary: hsl(162 94% 43%);
-  --color-primary-foreground: hsl(144 65% 5%);
+    --color-primary: hsl(142 71% 45%);
+    --color-primary-foreground: hsl(144 100% 5%);
 
-  --color-secondary: hsl(222 47% 11%);
-  --color-secondary-foreground: hsl(210 40% 98%);
+    --color-secondary: hsl(240 4% 16%);
+    --color-secondary-foreground: hsl(0 0% 98%);
 
-  --color-muted: hsl(217 33% 17%);
-  --color-muted-foreground: hsl(215 20% 65%);
+    --color-muted: hsl(240 4% 16%);
+    --color-muted-foreground: hsl(240 5% 64.9%);
 
-  --color-accent: hsl(199 89% 48%);
-  --color-accent-foreground: hsl(210 40% 98%);
+    --color-accent: hsl(262 83% 58%);
+    --color-accent-foreground: hsl(0 0% 98%);
 
-  --color-destructive: hsl(0 63% 31%);
-  --color-destructive-foreground: hsl(210 40% 98%);
+    --color-destructive: hsl(0 62.8% 30.6%);
+    --color-destructive-foreground: hsl(0 0% 98%);
 
-  --color-border: hsl(217 33% 17%);
-  --color-input: hsl(217 33% 17%);
-  --color-ring: hsl(162 94% 43%);
+    --color-border: hsl(240 4% 16%);
+    --color-input: hsl(240 4% 16%);
+    --color-ring: hsl(142 71% 45%);
 
-  --radius-lg: 0.75rem;
-  --radius-md: calc(0.75rem - 2px);
-  --radius-sm: calc(0.75rem - 4px);
+    --radius-lg: 1rem;
+    --radius-md: calc(1rem - 2px);
+    --radius-sm: calc(1rem - 4px);
 
-  --color-chart-1: hsl(162 94% 43%);
-  --color-chart-2: hsl(199 89% 48%);
-  --color-chart-3: hsl(280 75% 60%);
-  --color-chart-4: hsl(30 80% 60%);
-  --color-chart-5: hsl(340 75% 60%);
+    --font-logo: var(--font-orbitron);
+    --font-heading: var(--font-rajdhani);
 }
 
 @layer base {
-  * {
-    @apply border-border;
-  }
+    * {
+        border-color: var(--color-border);
+    }
 
-  body {
-    @apply bg-background text-foreground antialiased selection:bg-primary/20 selection:text-primary;
-    height: 100%;
-    overflow-x: hidden;
-    overscroll-behavior-y: none;
-  }
+    body {
+        background-color: var(--color-background);
+        color: var(--color-foreground);
+        @apply antialiased selection:bg-primary/30 selection:text-primary;
+        height: 100%;
+        overflow-x: hidden;
+        overscroll-behavior-y: none;
+        font-feature-settings: "ss01", "ss02", "cv01", "cv02";
+    }
 
-  html {
-    height: 100%;
-    overscroll-behavior-y: none;
-  }
+    /* PREMIUM BACKGROUND TEXTURE */
+    body::before {
+        content: "";
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+        background:
+            radial-gradient(circle at 15% 50%, rgba(16, 185, 129, 0.08), transparent 25%),
+            radial-gradient(circle at 85% 30%, rgba(139, 92, 246, 0.08), transparent 25%);
+        pointer-events: none;
+        z-index: -1;
+    }
+
+    html,
+    body {
+        height: 100%;
+        width: 100%;
+        margin: 0;
+        padding: 0;
+        overflow: hidden;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+        user-select: none;
+        -webkit-user-select: none;
+        -webkit-touch-callout: none;
+        -webkit-tap-highlight-color: transparent;
+        background-color: #050505;
+    }
 }
 
 @layer utilities {
-  .pb-safe-bottom {
-    padding-bottom: env(safe-area-inset-bottom);
-  }
+    .pb-safe-bottom {
+        padding-bottom: env(safe-area-inset-bottom);
+    }
+
+    .pt-safe-top {
+        padding-top: env(safe-area-inset-top);
+    }
+
+    /* PREMIUM GLASSMORPHISM - Converted to Pure CSS to avoid Tailwind v4 @apply issues */
+    .glass {
+        background-color: rgba(255, 255, 255, 0.03);
+        backdrop-filter: blur(24px);
+        -webkit-backdrop-filter: blur(24px);
+        border: 1px solid rgba(255, 255, 255, 0.06);
+        box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.36);
+    }
+
+    .glass-card {
+        background-color: rgba(0, 0, 0, 0.4);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+    }
+
+    .glass-panel {
+        background-color: rgba(10, 10, 10, 0.8);
+        backdrop-filter: blur(40px);
+        -webkit-backdrop-filter: blur(40px);
+        border-right: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    /* NEON TEXT UTILITIES */
+    .text-glow {
+        text-shadow: 0 0 10px rgba(16, 185, 129, 0.5);
+    }
+
+    .text-glow-accent {
+        text-shadow: 0 0 10px rgba(139, 92, 246, 0.5);
+    }
+
+    /* GRADIENT TEXT - Keeping @apply for simple generic classes or converting */
+    .text-gradient {
+        background-clip: text;
+        -webkit-background-clip: text;
+        color: transparent;
+        background-image: linear-gradient(to right, #ffffff, rgba(255, 255, 255, 0.9), rgba(255, 255, 255, 0.6));
+    }
+
+    .text-gradient-primary {
+        background-clip: text;
+        -webkit-background-clip: text;
+        color: transparent;
+        background-image: linear-gradient(to right, hsl(142 71% 45%), #34d399, #2dd4bf);
+    }
+
+    .text-gradient-accent {
+        background-clip: text;
+        -webkit-background-clip: text;
+        color: transparent;
+        background-image: linear-gradient(to right, #a78bfa, #e879f9);
+    }
+
+    /* ANIMATIONS */
+    .animate-float {
+        animation: float 6s ease-in-out infinite;
+    }
+
+    .animate-pulse-slow {
+        animation: pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+    }
+
+    .animate-shimmer {
+        animation: shimmer 2s linear infinite;
+    }
 }
 
-@utility glass {
-  @apply bg-black/20 backdrop-blur-lg border border-white/10 shadow-lg;
+@keyframes float {
+    0% {
+        transform: translateY(0px);
+    }
+
+    50% {
+        transform: translateY(-10px);
+    }
+
+    100% {
+        transform: translateY(0px);
+    }
 }
 
-@utility text-gradient {
-  @apply bg-clip-text text-transparent bg-gradient-to-r from-white via-white/80 to-white/60;
+@keyframes scan {
+    0% {
+        top: 0%
+    }
+
+    100% {
+        top: 100%
+    }
 }
 
-@utility text-gradient-primary {
-  @apply bg-clip-text text-transparent bg-gradient-to-r from-primary to-accent;
+@keyframes shimmer {
+    from {
+        transform: translateX(-100%);
+    }
+
+    to {
+        transform: translateX(100%);
+    }
 }

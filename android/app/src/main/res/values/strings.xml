@@ -4,4 +4,5 @@
     <string name="title_activity_main">FitAI</string>
     <string name="package_name">com.fitai.app</string>
     <string name="custom_url_scheme">com.fitai.app</string>
+    <string name="server_client_id">149062085555-j6r5ednpkjmc1s5oh1agrjjmsck66am3.apps.googleusercontent.com</string>
 </resources>

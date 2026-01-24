@@ -2,7 +2,7 @@ import { Workout } from "./workout-service"
 
 export interface ActivityItem {
     id: string
-    type: "Workout" | "Nutrition" | "Scan" | "Vision"
+    type: "Workout" | "Nutrition" | "Scan" | "Vision" | "Progress"
     title: string
     details: string
     calories: number
@@ -35,6 +35,12 @@ export const ActivityService = {
         if (typeof window === "undefined") return []
         const stored = localStorage.getItem(STORAGE_KEY)
         return stored ? JSON.parse(stored) : []
+    },
+
+    getTodayActivities(): ActivityItem[] {
+        if (typeof window === "undefined") return []
+        const today = new Date().toDateString()
+        return this.getActivities().filter(a => new Date(a.date).toDateString() === today || new Date(a.timestamp).toDateString() === today)
     },
 
     getRecentWorkouts(): Workout[] {

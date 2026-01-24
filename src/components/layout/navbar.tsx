@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Dumbbell, LayoutDashboard, User, LogOut, CreditCard } from "lucide-react"
 import { useAuth } from "@/context/auth-context"
+import { supabase } from "@/lib/supabase"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import {
     DropdownMenu,
@@ -25,14 +26,14 @@ export function Navbar() {
     ]
 
     return (
-        <header className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-6 py-4">
+        <header className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-6 py-4 pt-safe-top transition-all duration-300">
             <div className="glass absolute inset-0 -z-10 rounded-b-xl" />
 
             <div className="flex items-center gap-2">
                 <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary text-primary-foreground">
                     <Dumbbell className="h-6 w-6" />
                 </div>
-                <span className="text-xl font-bold tracking-tight text-gradient">
+                <span className="text-2xl font-bold tracking-tight text-gradient">
                     FitAI
                 </span>
             </div>
@@ -113,11 +114,16 @@ function AuthButtons() {
 
     return (
         <>
-            <Button variant="ghost" size="sm" className="hidden sm:flex" onClick={signIn}>
-                Sign In
+            <Button
+                variant="ghost"
+                size="sm"
+                className="hidden sm:flex"
+                onClick={signIn}
+            >
+                Sign In (v24 - Native)
             </Button>
             <Link href="/onboarding">
-                <Button variant="neon" size="sm">
+                <Button variant="neon" size="default">
                     Get Started
                 </Button>
             </Link>

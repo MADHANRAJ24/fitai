@@ -1,359 +1,283 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { motion, AnimatePresence } from "framer-motion"
-import { User, Scale, Ruler, Activity, Heart, Utensils, ChevronRight, ChevronLeft, Check, Save } from "lucide-react"
+import { User, Scale, Ruler, Activity, Heart, Utensils, ChevronRight, ChevronLeft, Check, Save, Camera, History, Trophy, Flame, Medal, Edit2, X } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Progress } from "@/components/ui/progress"
 import { toast } from "sonner"
 import { bodyProfileService, BodyProfile, BODY_CONDITIONS } from "@/services/body-profile-service"
-
-const STEPS = [
-    { id: 1, title: "Basic Info", icon: User },
-    { id: 2, title: "Body Metrics", icon: Scale },
-    { id: 3, title: "Fitness Level", icon: Activity },
-    { id: 4, title: "Health Conditions", icon: Heart },
-    { id: 5, title: "Diet Preferences", icon: Utensils },
-]
+import { ActivityService, ActivityItem } from "@/services/activity-service"
 
 export default function ProfilePage() {
-    const [step, setStep] = useState(1)
     const [profile, setProfile] = useState<Partial<BodyProfile>>({
-        height: 170,
-        weight: 70,
-        age: 25,
-        gender: 'male',
-        fitnessLevel: 'intermediate',
-        goal: 'maintain',
-        conditions: [],
-        dietary: {
-            preference: 'non-veg',
-            allergies: [],
-            dailyCalorieTarget: 2000
-        }
+        height: 170, weight: 70, age: 25, gender: 'male', fitnessLevel: 'intermediate', goal: 'maintain', conditions: [],
+        dietary: { preference: 'non-veg', allergies: [], dailyCalorieTarget: 2000 },
+        photoUrl: ''
     })
     const [isLoaded, setIsLoaded] = useState(false)
+    const [recentActivity, setRecentActivity] = useState<ActivityItem[]>([])
+    const [isEditing, setIsEditing] = useState(false)
+    const fileInputRef = useRef<HTMLInputElement>(null)
 
+    // Load Data
+    // Load Data & Listen for Sync
     useEffect(() => {
-        const existingProfile = bodyProfileService.getProfile()
-        if (existingProfile) {
-            setProfile(existingProfile)
+        const load = () => {
+            const existingProfile = bodyProfileService.getProfile()
+            if (existingProfile) setProfile(existingProfile)
+            setRecentActivity(ActivityService.getActivities())
+            setIsLoaded(true)
         }
-        setIsLoaded(true)
+
+        load()
+
+        window.addEventListener('user_updated', load)
+        window.addEventListener('storage_restored', load)
+        return () => {
+            window.removeEventListener('user_updated', load)
+            window.removeEventListener('storage_restored', load)
+        }
     }, [])
 
-    const updateProfile = (updates: Partial<BodyProfile>) => {
-        setProfile(prev => ({ ...prev, ...updates }))
-    }
-
-    const handleSave = () => {
-        try {
-            const savedProfile = bodyProfileService.saveProfile(profile as Omit<BodyProfile, 'createdAt' | 'updatedAt'>)
-            console.log("Profile saved:", savedProfile)
-            toast.success("Profile saved! Your workouts are now personalized 💪", {
-                description: `BMI: ${bodyProfileService.calculateBMI(savedProfile).value} | Calories: ${bodyProfileService.getRecommendedCalories(savedProfile)}`
-            })
-        } catch (error) {
-            console.error("Failed to save profile:", error)
-            toast.error("Failed to save profile")
+    const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0]
+        if (file) {
+            if (file.size > 4 * 1024 * 1024) { return toast.error("Image too large (Max 4MB)") }
+            const reader = new FileReader()
+            reader.onloadend = () => {
+                const newUrl = reader.result as string
+                const updated = { ...profile, photoUrl: newUrl }
+                setProfile(updated)
+                // IMMEDIATE SAVE
+                bodyProfileService.saveProfile(updated as BodyProfile)
+                toast.success("Profile photo updated!")
+            }
+            reader.readAsDataURL(file)
         }
     }
 
-    const nextStep = () => setStep(s => Math.min(s + 1, STEPS.length))
-    const prevStep = () => setStep(s => Math.max(s - 1, 1))
+    const saveChanges = () => {
+        if (!profile.height || profile.height <= 50 || profile.height > 250) return toast.error("Height must be between 50cm and 250cm")
+        if (!profile.weight || profile.weight <= 20 || profile.weight > 300) return toast.error("Weight must be between 20kg and 300kg")
+        if (!profile.age || profile.age <= 10 || profile.age > 100) return toast.error("Age must be between 10 and 100")
+
+        bodyProfileService.saveProfile(profile as BodyProfile)
+        setIsEditing(false)
+        toast.success("Profile updated successfully")
+    }
+
+    // Gamification Logic
+    const calculateLevel = () => {
+        const baseXP = recentActivity.reduce((acc, curr) => acc + (curr.calories || 10), 0)
+        const level = Math.floor(baseXP / 1000) + 1
+        const progress = (baseXP % 1000) / 10
+        return { level, progress, totalXP: baseXP }
+    }
+    const stats = calculateLevel()
 
     const bmiData = profile.height && profile.weight ? bodyProfileService.calculateBMI(profile as BodyProfile) : null
-    const recommendedCalories = profile.height && profile.weight && profile.age && profile.gender && profile.fitnessLevel && profile.goal
-        ? bodyProfileService.getRecommendedCalories(profile as BodyProfile)
-        : null
 
-    if (!isLoaded) {
+    if (!isLoaded) return <div className="flex h-full items-center justify-center"><div className="animate-spin h-8 w-8 border-2 border-primary border-t-transparent rounded-full" /></div>
+
+    if (isEditing) {
         return (
-            <div className="flex items-center justify-center h-[calc(100vh-8rem)]">
-                <div className="animate-spin h-8 w-8 border-2 border-primary border-t-transparent rounded-full" />
+            <div className="space-y-6 h-[calc(100vh-8rem)] overflow-y-auto pr-2 custom-scrollbar p-1">
+                <div className="flex items-center justify-between">
+                    <h2 className="text-2xl font-bold text-white">Edit Profile</h2>
+                    <Button variant="ghost" size="icon" onClick={() => setIsEditing(false)}><X className="h-5 w-5" /></Button>
+                </div>
+
+                <div className="space-y-4">
+                    {/* Basic Inputs */}
+                    <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                            <label className="text-sm text-muted-foreground">Height (cm)</label>
+                            <input type="number" value={profile.height} onChange={e => setProfile({ ...profile, height: +e.target.value })} className="w-full bg-white/5 border border-white/10 rounded-xl p-3 text-white" />
+                        </div>
+                        <div className="space-y-2">
+                            <label className="text-sm text-muted-foreground">Weight (kg)</label>
+                            <input type="number" value={profile.weight} onChange={e => setProfile({ ...profile, weight: +e.target.value })} className="w-full bg-white/5 border border-white/10 rounded-xl p-3 text-white" />
+                        </div>
+                        <div className="space-y-2">
+                            <label className="text-sm text-muted-foreground">Age</label>
+                            <input type="number" value={profile.age} onChange={e => setProfile({ ...profile, age: +e.target.value })} className="w-full bg-white/5 border border-white/10 rounded-xl p-3 text-white" />
+                        </div>
+                        <div className="space-y-2">
+                            <label className="text-sm text-muted-foreground">Gender</label>
+                            <select value={profile.gender} onChange={e => setProfile({ ...profile, gender: e.target.value as any })} className="w-full bg-white/5 border border-white/10 rounded-xl p-3 text-white">
+                                <option value="male">Male</option>
+                                <option value="female">Female</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div className="space-y-2">
+                        <label className="text-sm text-muted-foreground">Fitness Goal</label>
+                        <div className="grid grid-cols-2 gap-2">
+                            {['lose_weight', 'build_muscle', 'maintain', 'endurance'].map(g => (
+                                <button key={g} onClick={() => setProfile({ ...profile, goal: g as any })}
+                                    className={`p-3 rounded-xl border capitalize ${profile.goal === g ? "bg-primary text-black border-primary" : "bg-white/5 border-white/10 text-white"}`}>
+                                    {g.replace('_', ' ')}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+                    <Button onClick={saveChanges} className="w-full font-bold">Save Changes</Button>
+                </div>
             </div>
         )
     }
 
     return (
         <div className="space-y-8 h-[calc(100vh-8rem)] overflow-y-auto pr-2 custom-scrollbar">
-            <div className="flex items-center justify-between">
-                <div>
-                    <h2 className="text-3xl font-bold tracking-tight text-white flex items-center gap-2">
-                        <User className="h-8 w-8 text-primary" />
-                        Body Profile
-                    </h2>
-                    <p className="text-muted-foreground">Tell us about yourself for personalized workouts.</p>
+            {/* Header Card (Gamer ID) */}
+            <div className="relative rounded-3xl overflow-hidden glass-card p-6 md:p-8 group shadow-[0_0_40px_rgba(16,185,129,0.1)]">
+                <div className="absolute top-0 right-0 p-4 z-20">
+                    <Button variant="ghost" size="icon" className="text-white/50 hover:text-white hover:bg-white/10" onClick={() => setIsEditing(true)}>
+                        <Edit2 className="h-5 w-5" />
+                    </Button>
                 </div>
-                {bmiData && (
-                    <div className="text-right">
-                        <div className={`text-2xl font-bold ${bmiData.color}`}>{bmiData.value}</div>
-                        <div className="text-xs text-muted-foreground">BMI: {bmiData.category}</div>
+
+                {/* ID Card Decoration */}
+                <div className="absolute top-4 left-4 w-20 h-20 border-t-2 border-l-2 border-primary/20 rounded-tl-3xl pointer-events-none" />
+                <div className="absolute bottom-4 right-4 w-20 h-20 border-b-2 border-r-2 border-accent/20 rounded-br-3xl pointer-events-none" />
+                <div className="absolute inset-0 bg-gradient-to-r from-primary/5 to-accent/5 opacity-50 pointer-events-none" />
+
+                <div className="flex flex-col md:flex-row items-center gap-8 relative z-10">
+                    {/* Avatar Logic (Top Tier Gamer) */}
+                    <div className="relative group">
+                        <div className="w-36 h-36 rounded-full p-1 bg-gradient-to-br from-primary via-emerald-400 to-teal-500 shadow-[0_0_25px_rgba(16,185,129,0.4)] animate-pulse-slow relative z-10">
+                            <div className="w-full h-full rounded-full overflow-hidden bg-black relative border-4 border-black">
+                                {profile.photoUrl ? (
+                                    <img src={profile.photoUrl} alt="User" className="w-full h-full object-cover" />
+                                ) : (
+                                    <div className="w-full h-full flex items-center justify-center bg-zinc-900"><User className="h-12 w-12 text-zinc-500" /></div>
+                                )}
+                                {/* Upload Overlay */}
+                                <div onClick={() => fileInputRef.current?.click()} className="absolute inset-0 bg-black/60 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer backdrop-blur-sm">
+                                    <Camera className="h-8 w-8 text-white drop-shadow-md" />
+                                </div>
+                            </div>
+                        </div>
+                        <div className="absolute -bottom-3 left-1/2 -translate-x-1/2 bg-black border border-primary/50 px-4 py-1 rounded-full text-sm font-bold text-primary shadow-lg z-20 tracking-widest font-heading uppercase flex items-center gap-1">
+                            Lvl <span className="text-white text-base">{stats.level}</span>
+                        </div>
+                        <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handlePhotoUpload} />
                     </div>
-                )}
+
+                    <div className="text-center md:text-left space-y-3 flex-1">
+                        <div>
+                            <h1 className="text-4xl font-bold text-white font-heading tracking-wide uppercase text-shadow-sm">Fitness Warrior</h1>
+                            <p className="text-primary font-mono text-xs tracking-[0.2em] uppercase opacity-80">Class: {profile.fitnessLevel || "Recruit"}</p>
+                        </div>
+
+                        <div className="flex items-center gap-4 justify-center md:justify-start text-sm text-muted-foreground font-medium bg-black/30 w-fit mx-auto md:mx-0 px-4 py-2 rounded-lg border border-white/5">
+                            <span className="capitalize flex items-center gap-1"><User className="h-3 w-3" /> {profile.gender}</span>
+                            <span className="w-1 h-1 bg-white/20 rounded-full" />
+                            <span>{profile.age} Years</span>
+                            <span className="w-1 h-1 bg-white/20 rounded-full" />
+                            <span>{profile.height}cm</span>
+                            <span className="w-1 h-1 bg-white/20 rounded-full" />
+                            <span>{profile.weight}kg</span>
+                        </div>
+
+                        {/* XP Bar */}
+                        <div className="w-full max-w-md space-y-1 pt-2">
+                            <div className="flex justify-between text-xs text-primary font-bold font-mono tracking-wider">
+                                <span>XP PROGRESS</span>
+                                <span>{Math.round(stats.progress)}%</span>
+                            </div>
+                            <div className="h-3 w-full bg-black/50 rounded-full overflow-hidden border border-white/10 shadow-inner">
+                                <motion.div
+                                    initial={{ width: 0 }} animate={{ width: `${stats.progress}%` }}
+                                    className="h-full bg-gradient-to-r from-primary via-emerald-400 to-teal-400 shadow-[0_0_10px_rgba(16,185,129,0.5)]"
+                                >
+                                    <div className="w-full h-full bg-[linear-gradient(45deg,transparent,rgba(255,255,255,0.2),transparent)] bg-[length:10px_10px]" />
+                                </motion.div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Badges Row */}
+                <div className="mt-8 flex gap-4 overflow-x-auto pb-2 noscroll">
+                    {[
+                        { icon: Trophy, color: "text-yellow-500", label: "Early Bird", bg: "bg-yellow-500/10", border: "border-yellow-500/30" },
+                        { icon: Flame, color: "text-orange-500", label: "7 Day Streak", bg: "bg-orange-500/10", border: "border-orange-500/30" },
+                        { icon: Medal, color: "text-blue-500", label: "Top 10%", bg: "bg-blue-500/10", border: "border-blue-500/30" },
+                        { icon: Activity, color: "text-emerald-500", label: "10k Calories", bg: "bg-emerald-500/10", border: "border-emerald-500/30" },
+                    ].map((badge, i) => (
+                        <div key={i} className={`flex items-center gap-3 ${badge.bg} border ${badge.border} px-4 py-3 rounded-xl backdrop-blur-md flex-shrink-0 shadow-lg hover:scale-105 transition-transform cursor-default group`}>
+                            <badge.icon className={`h-6 w-6 ${badge.color} drop-shadow-sm group-hover:animate-bounce`} />
+                            <span className="text-xs font-bold text-white font-heading uppercase tracking-wider">{badge.label}</span>
+                        </div>
+                    ))}
+                </div>
             </div>
 
-            {/* Progress Steps */}
-            <div className="flex items-center justify-between mb-8">
-                {STEPS.map((s, i) => (
-                    <div key={s.id} className="flex items-center">
-                        <motion.div
-                            whileHover={{ scale: 1.1 }}
-                            onClick={() => setStep(s.id)}
-                            className={`w-10 h-10 rounded-full flex items-center justify-center cursor-pointer transition-all ${step === s.id
-                                ? "bg-primary text-black"
-                                : step > s.id
-                                    ? "bg-green-500 text-white"
-                                    : "bg-white/10 text-muted-foreground"
-                                }`}
-                        >
-                            {step > s.id ? <Check className="h-5 w-5" /> : <s.icon className="h-5 w-5" />}
-                        </motion.div>
-                        {i < STEPS.length - 1 && (
-                            <div className={`w-12 md:w-24 h-1 mx-2 rounded ${step > s.id ? "bg-green-500" : "bg-white/10"}`} />
+            {/* Stats Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* BMI Card */}
+                <div className="glass-card p-6 rounded-3xl border border-white/10 relative overflow-hidden">
+                    <div className="absolute top-0 right-0 p-4 opacity-50 bg-white/5 rounded-bl-2xl backdrop-blur-md text-white">
+                        <Scale className="h-6 w-6" />
+                    </div>
+                    <h3 className="text-lg font-bold text-white font-heading uppercase mb-4">Body Metrics</h3>
+                    <div className="flex items-center justify-between">
+                        <div>
+                            <div className={`text-5xl font-bold ${bmiData?.color} font-heading tracking-tighter text-glow-accent`}>{bmiData?.value || "--"}</div>
+                            <div className="text-sm text-muted-foreground mt-1 font-medium">BMI Status</div>
+                        </div>
+                        <div className={`px-5 py-2 rounded-lg bg-white/5 border border-white/10 ${bmiData?.color} font-bold font-mono tracking-wider shadow-inner`}>
+                            {bmiData?.category || "Unknown"}
+                        </div>
+                    </div>
+                </div>
+
+                {/* Calories Card */}
+                <div className="glass-card p-6 rounded-3xl border border-white/10 relative overflow-hidden">
+                    <div className="absolute top-0 right-0 p-4 opacity-50 bg-white/5 rounded-bl-2xl backdrop-blur-md text-white">
+                        <Utensils className="h-6 w-6" />
+                    </div>
+                    <h3 className="text-lg font-bold text-white font-heading uppercase mb-4">Nutritional Target</h3>
+                    <div className="flex items-center justify-between">
+                        <div>
+                            <div className="text-5xl font-bold text-primary font-heading tracking-tighter text-glow">{bodyProfileService.getRecommendedCalories(profile as BodyProfile)}</div>
+                            <div className="text-sm text-muted-foreground mt-1 font-medium">Calories / Day</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {/* Recent Activity */}
+            <div className="glass-card rounded-3xl border border-white/10 overflow-hidden">
+                <div className="p-6 border-b border-white/5 bg-white/5">
+                    <h3 className="text-lg font-bold text-white font-heading uppercase tracking-wide flex items-center gap-2">
+                        <History className="h-5 w-5 text-primary" /> Training History
+                    </h3>
+                </div>
+                <div className="p-6">
+                    <div className="space-y-4">
+                        {recentActivity.length > 0 ? recentActivity.map((activity, i) => (
+                            <motion.div key={activity.id} initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.1 }}
+                                className="flex items-center justify-between p-4 rounded-xl bg-black/40 border border-white/5 hover:border-primary/30 transition-all group">
+                                <div className="flex items-center gap-4">
+                                    <div className="h-10 w-10 rounded-lg bg-primary/20 flex items-center justify-center text-primary font-bold font-heading group-hover:scale-110 transition-transform shadow-[0_0_15px_rgba(16,185,129,0.2)]">
+                                        {activity.title.charAt(0)}
+                                    </div>
+                                    <div>
+                                        <div className="text-white font-bold font-heading tracking-wide">{activity.title}</div>
+                                        <div className="text-xs text-muted-foreground font-mono">{activity.date}</div>
+                                    </div>
+                                </div>
+                                <div className="font-mono font-bold text-emerald-400 text-sm">+{activity.calories} XP</div>
+                            </motion.div>
+                        )) : (
+                            <div className="text-center py-8 text-muted-foreground font-mono text-sm opacity-50">NO MISSION DATA RECORDED</div>
                         )}
                     </div>
-                ))}
-            </div>
-
-            {/* Step Content */}
-            <Card className="glass border-white/5">
-                <CardHeader>
-                    <CardTitle>{STEPS[step - 1].title}</CardTitle>
-                    <CardDescription>Step {step} of {STEPS.length}</CardDescription>
-                </CardHeader>
-                <CardContent className="min-h-[300px]">
-                    <AnimatePresence mode="wait">
-                        <motion.div
-                            key={step}
-                            initial={{ opacity: 0, x: 20 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            exit={{ opacity: 0, x: -20 }}
-                            className="space-y-6"
-                        >
-                            {step === 1 && (
-                                <div className="space-y-6">
-                                    <div>
-                                        <label className="text-sm text-muted-foreground mb-2 block">Age</label>
-                                        <input
-                                            type="number"
-                                            value={profile.age}
-                                            onChange={e => updateProfile({ age: parseInt(e.target.value) || 0 })}
-                                            className="w-full bg-white/5 border border-white/10 rounded-xl p-3 text-white"
-                                        />
-                                    </div>
-                                    <div>
-                                        <label className="text-sm text-muted-foreground mb-2 block">Gender</label>
-                                        <div className="flex gap-3">
-                                            {['male', 'female', 'other'].map(g => (
-                                                <button
-                                                    key={g}
-                                                    onClick={() => updateProfile({ gender: g as BodyProfile['gender'] })}
-                                                    className={`flex-1 py-3 rounded-xl border transition-all capitalize ${profile.gender === g
-                                                        ? "bg-primary text-black border-primary font-bold"
-                                                        : "bg-white/5 border-white/10 text-white hover:bg-white/10"
-                                                        }`}
-                                                >
-                                                    {g}
-                                                </button>
-                                            ))}
-                                        </div>
-                                    </div>
-                                </div>
-                            )}
-
-                            {step === 2 && (
-                                <div className="space-y-6">
-                                    <div>
-                                        <label className="text-sm text-muted-foreground mb-2 block">Height (cm)</label>
-                                        <input
-                                            type="number"
-                                            value={profile.height}
-                                            onChange={e => updateProfile({ height: parseInt(e.target.value) || 0 })}
-                                            className="w-full bg-white/5 border border-white/10 rounded-xl p-3 text-white"
-                                        />
-                                        <p className="text-xs text-muted-foreground mt-1">{Math.round((profile.height || 0) / 30.48)} ft {Math.round(((profile.height || 0) % 30.48) / 2.54)} in</p>
-                                    </div>
-                                    <div>
-                                        <label className="text-sm text-muted-foreground mb-2 block">Weight (kg)</label>
-                                        <input
-                                            type="number"
-                                            value={profile.weight}
-                                            onChange={e => updateProfile({ weight: parseInt(e.target.value) || 0 })}
-                                            className="w-full bg-white/5 border border-white/10 rounded-xl p-3 text-white"
-                                        />
-                                        <p className="text-xs text-muted-foreground mt-1">{Math.round((profile.weight || 0) * 2.205)} lbs</p>
-                                    </div>
-                                    {bmiData && (
-                                        <div className="p-4 rounded-xl bg-white/5 border border-white/10">
-                                            <div className="flex justify-between items-center">
-                                                <span className="text-sm text-muted-foreground">Your BMI</span>
-                                                <span className={`text-xl font-bold ${bmiData.color}`}>{bmiData.value}</span>
-                                            </div>
-                                            <p className={`text-sm ${bmiData.color}`}>{bmiData.category}</p>
-                                        </div>
-                                    )}
-                                </div>
-                            )}
-
-                            {step === 3 && (
-                                <div className="space-y-6">
-                                    <div>
-                                        <label className="text-sm text-muted-foreground mb-3 block">Fitness Level</label>
-                                        <div className="space-y-3">
-                                            {[
-                                                { id: 'beginner', label: 'Beginner', desc: 'New to fitness, building habits' },
-                                                { id: 'intermediate', label: 'Intermediate', desc: 'Regular exercise, 3-4x per week' },
-                                                { id: 'advanced', label: 'Advanced', desc: 'Experienced, 5+ sessions weekly' }
-                                            ].map(level => (
-                                                <button
-                                                    key={level.id}
-                                                    onClick={() => updateProfile({ fitnessLevel: level.id as BodyProfile['fitnessLevel'] })}
-                                                    className={`w-full p-4 rounded-xl border text-left transition-all ${profile.fitnessLevel === level.id
-                                                        ? "bg-primary/20 border-primary"
-                                                        : "bg-white/5 border-white/10 hover:bg-white/10"
-                                                        }`}
-                                                >
-                                                    <div className="font-bold text-white">{level.label}</div>
-                                                    <div className="text-sm text-muted-foreground">{level.desc}</div>
-                                                </button>
-                                            ))}
-                                        </div>
-                                    </div>
-                                    <div>
-                                        <label className="text-sm text-muted-foreground mb-3 block">Goal</label>
-                                        <div className="grid grid-cols-2 gap-3">
-                                            {[
-                                                { id: 'lose_weight', label: '🔥 Lose Weight' },
-                                                { id: 'build_muscle', label: '💪 Build Muscle' },
-                                                { id: 'maintain', label: '⚖️ Maintain' },
-                                                { id: 'endurance', label: '🏃 Endurance' }
-                                            ].map(goal => (
-                                                <button
-                                                    key={goal.id}
-                                                    onClick={() => updateProfile({ goal: goal.id as BodyProfile['goal'] })}
-                                                    className={`p-3 rounded-xl border transition-all ${profile.goal === goal.id
-                                                        ? "bg-primary/20 border-primary"
-                                                        : "bg-white/5 border-white/10 hover:bg-white/10"
-                                                        }`}
-                                                >
-                                                    {goal.label}
-                                                </button>
-                                            ))}
-                                        </div>
-                                    </div>
-                                </div>
-                            )}
-
-                            {step === 4 && (
-                                <div className="space-y-4">
-                                    <p className="text-sm text-muted-foreground">Select any conditions that apply:</p>
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                                        {BODY_CONDITIONS.map(condition => (
-                                            <button
-                                                key={condition.id}
-                                                onClick={() => {
-                                                    const conditions = profile.conditions || []
-                                                    const newConditions = conditions.includes(condition.id)
-                                                        ? conditions.filter(c => c !== condition.id)
-                                                        : [...conditions, condition.id]
-                                                    updateProfile({ conditions: newConditions })
-                                                }}
-                                                className={`p-4 rounded-xl border text-left transition-all ${profile.conditions?.includes(condition.id)
-                                                    ? "bg-red-500/20 border-red-500"
-                                                    : "bg-white/5 border-white/10 hover:bg-white/10"
-                                                    }`}
-                                            >
-                                                <div className="font-bold text-white">{condition.name}</div>
-                                                <div className="text-xs text-muted-foreground">{condition.description}</div>
-                                            </button>
-                                        ))}
-                                    </div>
-                                    <p className="text-xs text-muted-foreground mt-4">
-                                        * Exercises that may aggravate these conditions will be excluded from your workouts.
-                                    </p>
-                                </div>
-                            )}
-
-                            {step === 5 && (
-                                <div className="space-y-6">
-                                    <div>
-                                        <label className="text-sm text-muted-foreground mb-3 block">Dietary Preference</label>
-                                        <div className="flex gap-3">
-                                            {[
-                                                { id: 'non-veg', label: '🥩 Non-Veg' },
-                                                { id: 'veg', label: '🥗 Vegetarian' },
-                                                { id: 'vegan', label: '🌱 Vegan' }
-                                            ].map(pref => (
-                                                <button
-                                                    key={pref.id}
-                                                    onClick={() => updateProfile({
-                                                        dietary: { ...profile.dietary!, preference: pref.id as BodyProfile['dietary']['preference'] }
-                                                    })}
-                                                    className={`flex-1 py-3 rounded-xl border transition-all ${profile.dietary?.preference === pref.id
-                                                        ? "bg-primary text-black border-primary font-bold"
-                                                        : "bg-white/5 border-white/10 text-white hover:bg-white/10"
-                                                        }`}
-                                                >
-                                                    {pref.label}
-                                                </button>
-                                            ))}
-                                        </div>
-                                    </div>
-
-                                    {recommendedCalories && (
-                                        <div className="p-4 rounded-xl bg-green-500/10 border border-green-500/20">
-                                            <div className="flex justify-between items-center">
-                                                <span className="text-sm text-muted-foreground">Recommended Daily Calories</span>
-                                                <span className="text-2xl font-bold text-green-400">{recommendedCalories}</span>
-                                            </div>
-                                            <p className="text-xs text-muted-foreground mt-1">Based on your goal: {profile.goal?.replace('_', ' ')}</p>
-                                        </div>
-                                    )}
-
-                                    <div className="p-4 rounded-xl bg-primary/10 border border-primary/20">
-                                        <h4 className="font-bold text-white mb-2">Profile Summary</h4>
-                                        <div className="grid grid-cols-2 gap-2 text-sm">
-                                            <div className="text-muted-foreground">Age:</div>
-                                            <div className="text-white">{profile.age} years</div>
-                                            <div className="text-muted-foreground">Height:</div>
-                                            <div className="text-white">{profile.height} cm</div>
-                                            <div className="text-muted-foreground">Weight:</div>
-                                            <div className="text-white">{profile.weight} kg</div>
-                                            <div className="text-muted-foreground">Level:</div>
-                                            <div className="text-white capitalize">{profile.fitnessLevel}</div>
-                                            <div className="text-muted-foreground">Conditions:</div>
-                                            <div className="text-white">{profile.conditions?.length || 0} selected</div>
-                                        </div>
-                                    </div>
-                                </div>
-                            )}
-                        </motion.div>
-                    </AnimatePresence>
-                </CardContent>
-            </Card>
-
-            {/* Navigation */}
-            <div className="flex justify-between">
-                <Button
-                    variant="outline"
-                    onClick={prevStep}
-                    disabled={step === 1}
-                    className="gap-2"
-                >
-                    <ChevronLeft className="h-4 w-4" /> Previous
-                </Button>
-
-                {step === STEPS.length ? (
-                    <Button onClick={handleSave} className="gap-2">
-                        <Save className="h-4 w-4" /> Save Profile
-                    </Button>
-                ) : (
-                    <Button onClick={nextStep} className="gap-2">
-                        Next <ChevronRight className="h-4 w-4" />
-                    </Button>
-                )}
+                </div>
             </div>
         </div>
     )

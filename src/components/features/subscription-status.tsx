@@ -19,6 +19,12 @@ export function SubscriptionStatus() {
 
             const { expiringSoon, daysLeft, expired } = await SubscriptionService.checkExpirationStatus()
 
+            if (currentSub && !expired) {
+                localStorage.setItem("fitai_is_premium", "true")
+            } else {
+                localStorage.setItem("fitai_is_premium", "false")
+            }
+
             if (expired) {
                 toast.error("Subscription Expired", {
                     description: "Your plan has expired. Please renew to regain access.",
