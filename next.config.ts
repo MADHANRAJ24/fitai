@@ -1,7 +1,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  output: "export", // Commented out for Vercel Web Deployment (Enable for APK)
+  // output: "export", // Commented out for Vercel Web Deployment (Enable for APK)
   trailingSlash: true,
   typescript: {
     ignoreBuildErrors: true,
