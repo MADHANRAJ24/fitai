@@ -39,7 +39,7 @@ export default function Home() {
       <Navbar />
 
       <div className="container mx-auto px-4 pt-40 pb-20 relative z-10">
-        <div className="hidden" id="deploy-check">v2</div>
+        <div className="hidden" id="deploy-check">v3</div>
         <div className="flex flex-col items-center text-center max-w-5xl mx-auto space-y-10">
 
           {/* Glitch Badge */}
@@ -50,7 +50,7 @@ export default function Home() {
             className="inline-flex items-center gap-2 rounded-full border border-cyan-500/30 bg-cyan-500/10 px-4 py-1.5 text-xs font-medium text-cyan-400 shadow-[0_0_20px_rgba(34,211,238,0.3)] backdrop-blur-md hover:bg-cyan-500/20 transition-colors cursor-crosshair"
           >
             <Zap className="h-3 w-3 animate-pulse text-yellow-400" />
-            <span className="tracking-[0.2em] uppercase text-[10px] font-bold">System Online // v2.1</span>
+            <span className="tracking-[0.2em] uppercase text-[10px] font-bold">System Online // v2.1 (BUILD V4 SUCCESS)</span>
           </motion.div>
 
           {/* Hero Title with Scale Animation */}
