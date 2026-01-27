@@ -34,7 +34,7 @@ export function Navbar() {
                     <Dumbbell className="h-6 w-6" />
                 </div>
                 <span className="text-2xl font-bold tracking-tight text-gradient">
-                    FitAI (v8)
+                    FitAI (v9)
                 </span>
             </div>
 
