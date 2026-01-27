@@ -39,7 +39,7 @@ export default function Home() {
       <Navbar />
 
       <div className="container mx-auto px-4 pt-40 pb-20 relative z-10">
-        <div className="hidden" id="deploy-check">v3</div>
+        <div className="hidden" id="deploy-check">v6</div>
         <div className="flex flex-col items-center text-center max-w-5xl mx-auto space-y-10">
 
           {/* Glitch Badge */}
