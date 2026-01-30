@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from "react"
 import { motion } from "framer-motion"
-import { Bell, Shield, Mail, Smartphone, ExternalLink, Trash2, Moon, Globe, Download, CheckCircle } from "lucide-react"
+import { Bell, Shield, Mail, Smartphone, ExternalLink, Trash2, Moon, Globe, Download, CheckCircle, Bug } from "lucide-react"
+import { AdMob } from '@capacitor-community/admob'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Switch } from "@/components/ui/switch"
@@ -85,6 +86,20 @@ export default function SettingsPage() {
         toast.success("Data exported successfully!", {
             description: "Check your downloads folder."
         })
+    }
+
+    const handleOpenAdInspector = async () => {
+        try {
+            await AdMob.openAdInspector()
+            toast.success("Ad Inspector Initialized", {
+                description: "Opening native AdMob debug interface."
+            })
+        } catch (error) {
+            console.error('AdMob Inspector failed', error)
+            toast.error("Inspector Failed", {
+                description: "Make sure you are running on a real device with test ads enabled."
+            })
+        }
     }
 
     // Don't render until client-side to prevent hydration mismatch
@@ -201,6 +216,23 @@ export default function SettingsPage() {
                                 <CheckCircle className="h-4 w-4 text-primary" />
                                 <span className="text-[10px] text-primary font-black uppercase">Active</span>
                             </div>
+                        </div>
+
+                        {/* AdMob Inspector Trigger */}
+                        <Separator className="bg-white/5 my-2" />
+                        <div className="pt-2">
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                className="w-full h-10 gap-2 border-primary/20 bg-primary/5 hover:bg-primary/10 text-primary font-bold uppercase tracking-widest text-[10px] rounded-xl transition-all"
+                                onClick={handleOpenAdInspector}
+                            >
+                                <Bug className="h-3 w-3" />
+                                Launch Ad Inspector
+                            </Button>
+                            <p className="text-[9px] text-muted-foreground font-mono mt-2 text-center uppercase tracking-tighter opacity-50">
+                                Verify mediation & ad delivery status.
+                            </p>
                         </div>
                     </CardContent>
                 </Card>
