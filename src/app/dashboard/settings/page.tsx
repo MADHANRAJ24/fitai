@@ -313,7 +313,7 @@ export default function SettingsPage() {
             </div>
 
             <div className="text-center text-[10px] font-mono uppercase tracking-[0.2em] text-muted-foreground pt-8 opacity-40">
-                FitAI System Architecture v1.1.19 // NODE_CORE_STABLE
+                FitAI System Architecture v1.1.20 // NODE_CORE_STABLE
             </div>
         </div >
     )
