@@ -74,6 +74,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         // Check active session
         // Check active session with strict async handling
         const initSession = async () => {
+            if (!supabase) return
             const { data: { session } } = await supabase.auth.getSession()
             setUser(session?.user ?? null)
 
