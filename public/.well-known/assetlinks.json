@@ -1,0 +1,14 @@
+[
+  {
+    "relation": [
+      "delegate_permission/common.handle_all_urls"
+    ],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.mathan.fitai.app",
+      "sha256_cert_fingerprints": [
+        "20:49:B2:DF:3C:C1:1D:A3:6B:E1:E4:FD:F8:CC:D5:34:E8:27:1A:C8:F0:BA:F6:0A:53:BD:5D:74:CA:C7:CF:66"
+      ]
+    }
+  }
+]
