@@ -3,8 +3,11 @@
 import { useState, useEffect } from "react"
 import { X } from "lucide-react"
 import { AdMob, BannerAdPosition, BannerAdSize, BannerAdPluginEvents, AdMobBannerSize } from '@capacitor-community/admob'
+import { useAuth } from "@/context/auth-context"
+import { Capacitor } from '@capacitor/core'
 
 export function AdBanner() {
+    const { adMobReady } = useAuth()
     const [isVisible, setIsVisible] = useState(true)
     const [isPremium, setIsPremium] = useState(false)
 
@@ -19,12 +22,19 @@ export function AdBanner() {
             const premium = checkPremium()
             if (premium) return
 
+            // CRITICAL FIX: Wait for context to signal AdMob is ready
+            // and ensure we are on a native platform
+            if (!adMobReady || !Capacitor.isNativePlatform()) return
+
             try {
+                // Defensive delay to ensure Android ViewGroup is fully initialized
+                await new Promise(resolve => setTimeout(resolve, 500));
+
                 await AdMob.showBanner({
                     adId: 'ca-app-pub-3061696204290590/1115965374',
                     adSize: BannerAdSize.ADAPTIVE_BANNER,
                     position: BannerAdPosition.BOTTOM_CENTER,
-                    margin: 80, // Same as the fixed bottom in original UI
+                    margin: 80,
                     isTesting: false
                 })
             } catch (error) {
@@ -32,12 +42,16 @@ export function AdBanner() {
             }
         }
 
-        showAd()
+        if (adMobReady) {
+            showAd()
+        }
 
         return () => {
-            AdMob.removeBanner()
+            if (Capacitor.isNativePlatform()) {
+                AdMob.removeBanner().catch(() => { });
+            }
         }
-    }, [])
+    }, [adMobReady])
 
     if (isPremium || !isVisible) return null
 

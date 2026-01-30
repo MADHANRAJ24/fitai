@@ -16,6 +16,7 @@ interface AuthContextType {
     user: User | null
     loading: boolean
     isSyncing: boolean
+    adMobReady: boolean
     signIn: () => Promise<void>
     signOut: () => Promise<void>
 }
@@ -24,6 +25,7 @@ const AuthContext = createContext<AuthContextType>({
     user: null,
     loading: true,
     isSyncing: false,
+    adMobReady: false,
     signIn: async () => { },
     signOut: async () => { },
 })
@@ -32,6 +34,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const [user, setUser] = useState<User | null>(null)
     const [loading, setLoading] = useState(true)
     const [isSyncing, setIsSyncing] = useState(false)
+    const [adMobReady, setAdMobReady] = useState(false)
     const [showWelcome, setShowWelcome] = useState(false)
 
     useEffect(() => {
@@ -52,7 +55,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 }).catch(e => console.error("Google Auth Init Failed:", e));
 
                 PushService.init().catch(e => console.error("Push Init Failed:", e));
-                AdMob.initialize().catch(e => console.error("AdMob Init Failed:", e));
+
+                AdMob.initialize()
+                    .then(() => {
+                        console.log("AdMob Initialized Successfully");
+                        setAdMobReady(true);
+                    })
+                    .catch(e => {
+                        console.error("AdMob Init Failed:", e);
+                        // Still set ready if it was already initialized or failed gracefully
+                        setAdMobReady(true);
+                    });
             } catch (e) {
                 console.error("Native Plugin Init Error:", e);
             }
@@ -165,7 +178,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
 
     return (
-        <AuthContext.Provider value={{ user, loading, isSyncing, signIn, signOut }}>
+        <AuthContext.Provider value={{ user, loading, isSyncing, adMobReady, signIn, signOut }}>
             {children}
             <LoginSuccessOverlay isVisible={showWelcome} />
         </AuthContext.Provider>
