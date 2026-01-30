@@ -5,6 +5,7 @@ import { X } from "lucide-react"
 import { AdMob, BannerAdPosition, BannerAdSize, BannerAdPluginEvents, AdMobBannerSize } from '@capacitor-community/admob'
 import { useAuth } from "@/context/auth-context"
 import { Capacitor } from '@capacitor/core'
+import { App } from '@capacitor/app'
 
 export function AdBanner() {
     const { adMobReady } = useAuth()
@@ -27,8 +28,13 @@ export function AdBanner() {
             if (!adMobReady || !Capacitor.isNativePlatform()) return
 
             try {
-                // Defensive delay to ensure Android ViewGroup is fully initialized
-                await new Promise(resolve => setTimeout(resolve, 500));
+                // Check app state - don't show if app is in background or inactive
+                const state = await App.getState();
+                if (!state.isActive) return;
+
+                // Increased defensive delay (2.5s) to ensure Android Activity is fully stable
+                // and any native splash screen has finished its transition.
+                await new Promise(resolve => setTimeout(resolve, 2500));
 
                 await AdMob.showBanner({
                     adId: 'ca-app-pub-3061696204290590/1115965374',
@@ -39,6 +45,7 @@ export function AdBanner() {
                 })
             } catch (error) {
                 console.error('AdMob showBanner failed', error)
+                // If it failed due to view group issues, we don't want to crash the JS thread
             }
         }
 
