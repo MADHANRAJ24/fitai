@@ -9,8 +9,8 @@ android {
         applicationId "com.mathan.fitai.app"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 120
-        versionName "1.1.20"
+        versionCode 121
+        versionName "1.1.21"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         ndk {
             debugSymbolLevel 'FULL'
